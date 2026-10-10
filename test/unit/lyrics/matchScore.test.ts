@@ -210,5 +210,26 @@ describe('calculateMatchScore', () => {
         expect(details.artistMatched).toBe(true);
         expect(details.score).toBeGreaterThanOrEqual(95);
     });
+
+    it('matches YouTube Music video titles with canonical candidates above 75 threshold', () => {
+        const details = calculateMatchScoreDetails(
+            {
+                title: 'Never Gonna Give You Up (Official Music Video)',
+                artist: 'Rick Astley',
+                durationMs: 213000,
+            },
+            {
+                id: 701,
+                name: 'Never Gonna Give You Up',
+                artists: [{ id: 1, name: 'Rick Astley' }],
+                album: { id: 1, name: 'Whenever You Need Somebody' },
+                durationMs: 213000,
+            }
+        );
+
+        expect(details.titleMatched).toBe(true);
+        expect(details.artistMatched).toBe(true);
+        expect(details.score).toBeGreaterThanOrEqual(75);
+    });
 });
 

@@ -252,7 +252,14 @@ const prefetchSong = async (
                     ? currentSettingsLyricSettings.preferredAlternativeLyricSource
                     : null;
             } else if (!signal.aborted) {
-                const lyricResult = await omni.getLyrics(song, { userId });
+                const lyricResult = await omni.getLyrics(song, { userId }).catch(() => ({
+                    mainText: null,
+                    wordByWordText: null,
+                    translationText: null,
+                    isPureMusic: false,
+                    lyrics: null,
+                    chorusRanges: [],
+                }));
                 const processed = {
                     mainLrc: lyricResult.mainText ?? null,
                     yrcLrc: lyricResult.wordByWordText ?? null,
@@ -279,7 +286,8 @@ const prefetchSong = async (
   const settingsLyricSettings = useLyricSettingsStore.getState();
                 const autoUseBest = settingsLyricSettings.autoUseBestLyric;
                 const preferredSource = settingsLyricSettings.preferredAlternativeLyricSource;
-                const shouldAutoMatch = autoUseBest && !onlineLyricsState?.hasOnlineOverride;
+                const shouldAutoMatch = (autoUseBest && !onlineLyricsState?.hasOnlineOverride)
+                    || (!resolvedLyrics && !onlineLyricsState?.hasOnlineOverride);
 
                 if (shouldAutoMatch) {
                     try {

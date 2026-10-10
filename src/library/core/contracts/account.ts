@@ -4,6 +4,7 @@ import type {
     OnlineProviderId,
     ProviderAccountSummary,
     ProviderCapabilities,
+    ProviderUser,
     QrLoginFailureKind,
     QrLoginMethod,
     QrLoginState,
@@ -304,6 +305,8 @@ export type LibraryAccountAuthPort = {
     /** 主动自检；没有可检查的对象时 resolve null，自检本身出错时 reject。 */
     runQrLoginSelfCheck(providerId: OnlineProviderId): Promise<LoginSelfCheckResult | null>;
     getProviderCapabilities(providerId: OnlineProviderId): Pick<ProviderCapabilities, 'auth'>;
+    login?(providerId: OnlineProviderId): Promise<ProviderUser | null>;
+    hasInteractiveLogin?(providerId: OnlineProviderId): boolean;
 };
 
 /**

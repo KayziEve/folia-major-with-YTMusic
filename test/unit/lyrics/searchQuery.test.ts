@@ -31,6 +31,15 @@ describe('buildLyricSearchQuery', () => {
     it('does not remove a title prefix that is not the supplied artist', () => {
         expect(normalizeSongTitleForLyricSearch('Part I - Nod-Krai', 'HOYO-MiX')).toBe('Part I - Nod-Krai');
     });
+
+    it('normalizes YouTube Music titles with video tags and bracketed noise', () => {
+        expect(buildLyricSearchQuery('Rick Astley - Never Gonna Give You Up (Official Music Video)', 'Rick Astley'))
+            .toBe('Never Gonna Give You Up - Rick Astley');
+        expect(buildLyricSearchQuery('YOASOBI「夜に駆ける」 Official Music Video', 'YOASOBI'))
+            .toBe('夜に駆ける - YOASOBI');
+        expect(buildLyricSearchQuery('Billie Eilish - bad guy (Official Video)', 'Billie Eilish'))
+            .toBe('bad guy - Billie Eilish');
+    });
 });
 
 describe('buildKugouLyricSearchQuery', () => {

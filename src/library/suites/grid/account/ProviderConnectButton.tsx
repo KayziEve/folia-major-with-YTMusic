@@ -22,6 +22,7 @@ type Props = {
 const badges: Record<string, [string, string]> = {
     netease: ['云', 'bg-red-500'], kugou: ['K', 'bg-blue-500'],
     qq: ['Q', 'bg-emerald-500'], bodian: ['波', 'bg-teal-500'],
+    ytmusic: ['YT', 'bg-red-500'],
 };
 
 const SPRING = { type: 'spring', stiffness: 460, damping: 36, mass: 0.9 } as const;

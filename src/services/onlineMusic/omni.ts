@@ -223,6 +223,17 @@ export const omni = {
         await provider.auth.logout();
     },
 
+    async login(providerId: OmniProviderId): Promise<OmniUser | null> {
+        const provider = requireOnlineMusicProvider(providerId);
+        if (!provider.auth) return unsupported(providerId, 'auth');
+        if (!provider.auth.login) return unsupported(providerId, 'interactive-login');
+        return provider.auth.login();
+    },
+
+    hasInteractiveLogin(providerId: OmniProviderId): boolean {
+        return typeof requireOnlineMusicProvider(providerId).auth?.login === 'function';
+    },
+
     // 没有这个能力就回空数组，UI 据此走单步流程；netease / kugou 完全不受影响。
     getQrLoginMethods(providerId: OmniProviderId): QrLoginMethod[] {
         return requireOnlineMusicProvider(providerId).auth?.getQrLoginMethods?.() ?? [];
@@ -505,9 +516,23 @@ export const omni = {
         await provider.playbackReports.reportPlayback(song, report);
     },
 
+    canGetLyrics(song: SongResult): boolean {
+        const provider = getOnlineMusicProviderForSong(song);
+        return providerSupports(provider, 'lyrics') && Boolean(provider?.lyrics);
+    },
+
     async getLyrics(song: SongResult, context?: { userId?: MediaId | null }): Promise<OmniLyricsResult> {
         const provider = providerForSong(song);
-        if (!provider.lyrics) return unsupported(provider.id, 'lyrics');
+        if (!provider.lyrics) {
+            return {
+                lyrics: null,
+                mainText: null,
+                wordByWordText: null,
+                translationText: null,
+                isPureMusic: false,
+                chorusRanges: [],
+            };
+        }
         const providerUserId = useOnlineProviderAccountStore.getState().accounts[provider.id]?.user?.id ?? context?.userId;
         const providerResult = await provider.lyrics.getLyrics(song, { ...context, userId: providerUserId });
         const resolved = (await resolveProviderLyricsChorus(providerResult, {

@@ -3,7 +3,7 @@ import type { LyricData, ReplayGainInfo, SongResult, UnifiedSong } from '../type
 // src/types/onlineMusic.ts
 
 export type MediaId = string | number;
-export type OnlineProviderId = 'netease' | (string & {});
+export type OnlineProviderId = 'netease' | 'ytmusic' | (string & {});
 export type AudioQualityPreference = 'standard' | 'high' | 'lossless' | 'hires';
 export type ProviderCatalogEntityKind = 'album' | 'artist' | 'playlist';
 
@@ -351,6 +351,7 @@ export type LoginSelfCheckResult = {
 export interface OnlineAuthProvider {
     getLoginStatus(): Promise<ProviderUser | null>;
     logout(): Promise<void>;
+    login?(): Promise<ProviderUser | null>;
     getQrLoginMethods?(): QrLoginMethod[];
     // 需要远端能力发现的 provider 在这里等待结果；UI 用同一份返回值决定单步或多步流程。
     resolveQrLoginMethods?(): Promise<QrLoginMethod[]>;

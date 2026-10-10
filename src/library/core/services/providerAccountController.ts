@@ -359,6 +359,27 @@ export const createProviderAccountController = (deps: LibraryAccountControllerDe
                 sessionId: null,
             };
         });
+        if (auth.hasInteractiveLogin?.(providerId)) {
+            try {
+                const user = await auth.login?.(providerId);
+                if (attempt !== loginSeq || disposed) return { status: 'superseded', providerId };
+                batch(() => { login = null; });
+                if (user) {
+                    await providerAccounts.refresh(providerId);
+                    if (providerId !== activeProviderId()) {
+                        await openSwitchRequest(providerId, 'activate-after-login');
+                    }
+                    return { status: 'started', providerId, sessionId: attempt, step: 'qr' };
+                }
+                return { status: 'superseded', providerId };
+            } catch (error) {
+                log('warn', 'login:interactive-error', { providerId, ...describeLoginError(error) });
+                if (attempt === loginSeq && !disposed) {
+                    batch(() => { login = null; });
+                }
+                return { status: 'superseded', providerId };
+            }
+        }
         let methods: readonly QrLoginMethod[];
         try {
             methods = await auth.resolveQrLoginMethods(providerId);

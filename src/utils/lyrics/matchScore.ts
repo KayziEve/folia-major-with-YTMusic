@@ -46,10 +46,23 @@ export function normalizeLyricMatchText(value: string): string {
         .trim();
 }
 
+const VIDEO_NOISE_PATTERN = /[\(\[（【〔〈《「『]\s*(?:official\s*(?:music\s*)?video|official\s*audio|music\s*video|official|audio|mv|lyrics?|lyric\s*video|full\s*ver(?:sion)?|hd|4k|m\/v|clip\s*officiel)\s*[\)\]）】〕〉》」』]/giu;
+const TRAILING_NOISE_PATTERN = /\s*[-–—|/]\s*(?:official\s*(?:music\s*)?video|official\s*audio|music\s*video|lyric\s*video|mv|audio)\s*$/giu;
+const TRAILING_VIDEO_TAG_PATTERN = /\s+(?:official\s*(?:music\s*)?video|official\s*audio|music\s*video|lyric\s*video|mv)\s*$/giu;
+
+export function cleanTitleNoiseForMatch(value: string): string {
+    return value
+        .replace(VIDEO_NOISE_PATTERN, '')
+        .replace(TRAILING_NOISE_PATTERN, '')
+        .replace(TRAILING_VIDEO_TAG_PATTERN, '')
+        .trim();
+}
+
 function normalizeTitleForMatch(value: string): string {
     const versionMarkerPattern = /(instrumental|inst|off\s*vocal|karaoke|remix|mix|version|ver\.?|cover|live|edit|arrange|伴奏|カラオケ|インスト|リミックス|remaster|remastered)/iu;
+    const cleaned = cleanTitleNoiseForMatch(value);
     return normalizeLyricMatchText(
-        value
+        cleaned
             .replace(/[\(\[（【]\s*(feat|featuring|ft)\.?\s+[^\)\]）】]+[\)\]）】]/giu, '')
             .replace(/\b(feat|featuring|ft)\.?\s+.+$/iu, '')
             .replace(/[\(\[（【]([^\)\]）】]+)[\)\]）】]/gu, (match, content: string) => {

@@ -24,6 +24,7 @@ const { createWindowsWallpaperMouseInjector } = require('./windowsWallpaperMouse
 const macWallpaperModule = require('./macWallpaperController.cjs');
 const { createKugouApiBridge } = require('./kugouApiBridge.cjs');
 const { createBodianApiBridge } = require('./bodianApiBridge.cjs');
+const { createYtmusicApiBridge } = require('./ytmusicApiBridge.cjs');
 const { createBodianMediaPolicy } = require('./bodian/mediaCors.cjs');
 const { createQqAuthSessionRepository } = require('./qqAuthSessionRepository.cjs');
 const { DEFAULT_DISCORD_APPLICATION_ID, createDiscordPresenceController } = require('./discordPresence.cjs');
@@ -202,6 +203,7 @@ const bodianApiBridge = createBodianApiBridge({ store, safeStorage,
     return request;
   },
 });
+const ytmusicApiBridge = createYtmusicApiBridge();
 const qqAuthSessionRepository = createQqAuthSessionRepository({ store, safeStorage });
 
 // --- Desktop wallpaper mode (Wayland layer-shell via windowtolayer / X11 desktop window) ---
@@ -2915,6 +2917,10 @@ function setupCorsBypassHandlers() {
         hostname === 'y.gtimg.cn' ||
         hostname === 'kugou.com' ||
         hostname.endsWith('.kugou.com') ||
+        hostname === 'googlevideo.com' ||
+        hostname.endsWith('.googlevideo.com') ||
+        hostname === 'ytimg.com' ||
+        hostname.endsWith('.ytimg.com') ||
         // Bodian audio and cover CDNs may omit CORS headers needed by Web Audio and canvas/WebGL.
         bodianMediaPolicy.allows(details);
     } catch (error) {
@@ -5918,6 +5924,12 @@ ipcMain.handle('bodian-api-request', (event, operation, params) => {
     return { ok: false, error: { code: 'unavailable', message: 'Untrusted Bodian request' } };
   }
   return bodianApiBridge.request(operation, params);
+});
+ipcMain.handle('ytmusic-api-request', (event, operation, params) => {
+  if (!isTrustedMainWindowContents(event.sender)) {
+    return { ok: false, error: { code: 'unavailable', message: 'Untrusted YouTube Music request' } };
+  }
+  return ytmusicApiBridge.request(operation, params);
 });
 
 ipcMain.handle('window-minimize', () => {

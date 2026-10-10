@@ -145,15 +145,27 @@ export async function loadOnlineSongLyrics(
             chorusRanges: [],
           }
         : await (async () => {
-            const result = await omni.getLyrics(song, { userId });
-            return {
-                mainLrc: result.mainText ?? null,
-                yrcLrc: result.wordByWordText ?? null,
-                transLrc: result.translationText ?? null,
-                isPureMusic: result.isPureMusic,
-                lyrics: result.lyrics,
-                chorusRanges: result.chorusRanges || [],
-            };
+            try {
+                const result = await omni.getLyrics(song, { userId });
+                return {
+                    mainLrc: result.mainText ?? null,
+                    yrcLrc: result.wordByWordText ?? null,
+                    transLrc: result.translationText ?? null,
+                    isPureMusic: result.isPureMusic,
+                    lyrics: result.lyrics,
+                    chorusRanges: result.chorusRanges || [],
+                };
+            } catch (error) {
+                console.warn('[OnlinePlayback] Failed to load provider lyrics:', error);
+                return {
+                    mainLrc: null,
+                    yrcLrc: null,
+                    transLrc: null,
+                    isPureMusic: false,
+                    lyrics: null,
+                    chorusRanges: [],
+                };
+            }
         })();
     const parsedLyrics = processed.lyrics;
 
@@ -163,7 +175,8 @@ export async function loadOnlineSongLyrics(
     let finalState = onlineLyricsState;
 
   const settingsLyricSettings = useLyricSettingsStore.getState();
-    const shouldAutoMatch = settingsLyricSettings.autoUseBestLyric && !onlineLyricsState?.hasOnlineOverride;
+    const shouldAutoMatch = (settingsLyricSettings.autoUseBestLyric && !onlineLyricsState?.hasOnlineOverride)
+        || (!resolvedLyrics && !onlineLyricsState?.hasOnlineOverride);
 
     if (shouldAutoMatch) {
         // The lyrics in hand are already displayable, so hand them over and report done BEFORE the

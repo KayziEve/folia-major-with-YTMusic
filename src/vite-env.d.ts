@@ -895,6 +895,10 @@ declare global {
         operation: import('./services/onlineMusic/bodianTransport').BodianOperation,
         params?: import('./services/onlineMusic/bodianTransport').BodianParams,
       ) => Promise<import('./services/onlineMusic/bodianTransport').BodianBridgeResult>;
+      ytmusicRequest: (
+        operation: import('./services/onlineMusic/ytmusicTransport').YtmusicOperation,
+        params?: import('./services/onlineMusic/ytmusicTransport').YtmusicParams,
+      ) => Promise<import('./services/onlineMusic/ytmusicTransport').YtmusicBridgeResult>;
       kugouRequest: (
         operation: ElectronKugouOperation,
         params?: Record<string, string | number | boolean | undefined>,

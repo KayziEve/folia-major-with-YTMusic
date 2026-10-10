@@ -314,4 +314,50 @@ describe('instrumental tracks, once auto-match has settled them', () => {
         expect(merged.importedLyrics).toBe(imported);
         expect(merged.matchedIsPureMusic).toBe(true);
     });
+
+    it('falls back to autoMatchBestLyric when provider has no native lyrics (e.g. YouTube Music)', async () => {
+        const ytSong: SongResult = {
+            id: 'yt-song',
+            name: 'Song Title',
+            artists: [{ id: 'artist-1', name: 'Artist Name' }],
+            album: { id: 'album-1', name: 'Album Name' },
+            durationMs: 200000,
+            sourceRef: { kind: 'online', providerId: 'ytmusic', mediaId: 'yt-song' },
+        };
+        lyricsMock.mockResolvedValue({
+            lyrics: null,
+            mainText: null,
+            wordByWordText: null,
+            translationText: null,
+            isPureMusic: false,
+            chorusRanges: [],
+        });
+        const matchedLyrics = {
+            lines: [{ startTime: 0, endTime: 5, fullText: 'hello matched lyrics', words: [] }],
+            isWordByWord: false,
+        };
+        autoMatchMock.mockResolvedValue({
+            lyrics: matchedLyrics,
+            source: 'netease',
+            id: 'netease-123',
+            song: ytSong,
+            isPureMusic: false,
+        });
+
+        const onLyrics = vi.fn();
+        const onDone = vi.fn();
+        await loadOnlineSongLyrics(ytSong, null, null, {
+            isCurrent: () => true,
+            onLyrics,
+            onDone,
+        });
+
+        expect(autoMatchMock).toHaveBeenCalledWith('Song Title', 'Artist Name', 200000, expect.anything());
+        expect(onLyrics).toHaveBeenCalledWith(matchedLyrics);
+        expect(saveLyricsStateMock).toHaveBeenCalledWith(ytSong, expect.objectContaining({
+            hasOnlineOverride: true,
+            onlineOverrideLyrics: matchedLyrics,
+            matchedLyricsSource: 'netease',
+        }));
+    });
 });

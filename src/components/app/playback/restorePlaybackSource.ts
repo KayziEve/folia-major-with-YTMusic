@@ -265,7 +265,14 @@ export const restorePlaybackSourceForSong = async (
     const effectiveUserId = songProviderId
         ? (useOnlineProviderAccountStore.getState().accounts[songProviderId]?.user?.id ?? userId)
         : userId;
-    const processed = await omni.getLyrics(song, { userId: effectiveUserId });
+    const processed = await omni.getLyrics(song, { userId: effectiveUserId }).catch(() => ({
+        lyrics: null,
+        mainText: null,
+        wordByWordText: null,
+        translationText: null,
+        isPureMusic: false,
+        chorusRanges: [],
+    }));
     const resolvedLyrics = resolveOnlineLyrics(onlineLyricsState, processed.lyrics);
     setCurrentSong(prev => {
         if (!prev || !isSamePlaybackSong(prev, song)) return prev;

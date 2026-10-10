@@ -234,7 +234,8 @@ export function useLibraryPlaybackController({
         const prefetched = getPrefetchedData(onlineSong, audioQuality);
         if (prefetched?.lyrics) return prefetched.lyrics;
 
-        return (await omni.getLyrics(onlineSong, { userId })).lyrics ?? fallbackLyrics;
+        const lyricsResult = await omni.getLyrics(onlineSong, { userId }).catch(() => ({ lyrics: null }));
+        return lyricsResult.lyrics ?? fallbackLyrics;
     }, [audioQuality, lyrics, userId]);
 
     const resolveOnlineSongLyricsState = useCallback(async (
@@ -1273,12 +1274,15 @@ export function useLibraryPlaybackController({
             const artistName = currentSongMetadata.artists.map(artist => artist.name).filter(Boolean).join(', ');
             const albumName = currentSongMetadata.album?.name || '';
             const sourceRef = getPlaybackSourceRef(currentSong);
-            const ownLyricsResult = await omni.getLyrics(currentSong);
+            const ownLyricsResult = (omni.canGetLyrics(currentSong) && sourceRef.kind === 'online' && (sourceRef.providerId === 'netease' || sourceRef.providerId === 'kugou'))
+                ? await omni.getLyrics(currentSong).catch(() => null)
+                : null;
             const bestMatch = await autoMatchBestLyric(currentSong.name, artistName, currentSongMetadata.durationMs, {
                 album: albumName,
                 preferredSource: settingsLyricSettings.preferredAlternativeLyricSource,
                 providerCandidate: sourceRef.kind === 'online'
                     && (sourceRef.providerId === 'netease' || sourceRef.providerId === 'kugou')
+                    && ownLyricsResult
                     ? { providerId: sourceRef.providerId as 'netease' | 'kugou', song: currentSong, lyricsResult: ownLyricsResult }
                     : undefined,
             });
