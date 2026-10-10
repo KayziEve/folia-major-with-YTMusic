@@ -2690,6 +2690,21 @@ export default {
         "description": "Setelah masuk, playlist pribadi buatan Anda kini dapat memuat lagu dengan paging sungguhan. Backend yang di-host sendiri harus memakai qq-music-api 3.1.2 atau lebih baru; backend lama beralih otomatis, dan playlist yang tidak dapat dibaca kini menjelaskan bahwa playlist itu tidak publik, alih-alih tampil kosong tanpa keterangan."
       }
     },
+    "v0_7_17": {
+      "intro": "0.7.17 menghadirkan pencarian dan pemutaran YouTube Music di aplikasi desktop, memperbaiki akses playlist QQ Music, serta menjaga pilihan keyboard tetap terlihat di command palette.",
+      "ytmusicDesktop": {
+        "title": "YouTube Music di Aplikasi Desktop",
+        "description": "Hubungkan akun YouTube Music untuk mencari dan memutar lagu serta melihat playlist Anda. Lirik YouTube Music belum tersedia dalam integrasi ini."
+      },
+      "qqAlgorithmPlaylists": {
+        "title": "Lebih Banyak Playlist QQ Music",
+        "description": "Setelah masuk, playlist algoritmik QQ Music kini dapat dimuat dengan API penyedia yang diperbarui."
+      },
+      "commandPaletteKeyboardScroll": {
+        "title": "Navigasi Command Palette Lebih Jelas",
+        "description": "Saat berpindah dengan tombol panah di command palette, daftar bergulir agar hasil terpilih tetap terlihat."
+      }
+    },
     "v0_7_16": {
       "intro": "0.7.16 memindahkan lirik AMLL ke API resmi, menemukan jauh lebih banyak lirik AMLL untuk lagu QQ Music, dan memungkinkan pencocokan manual mencari langsung di AMLL. Rilis ini juga menambahkan perpindahan tab beranda dengan Tab serta memperbaiki tautan album dan artis yang hilang di hasil pencarian lokal.",
       "amllSource": {

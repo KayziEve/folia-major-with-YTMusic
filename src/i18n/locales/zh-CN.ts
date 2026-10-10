@@ -2802,6 +2802,21 @@ export default {
         "description": "登录后，自己创建的不公开歌单也能读取歌曲，并支持真正的分页加载。自建后端需要升级到 qq-music-api 3.1.2 或更新版本；旧后端会自动回退，读不到时会明确提示「不是公开歌单」，不再静默显示为空。"
       }
     },
+    "v0_7_17": {
+      "intro": "0.7.17 为桌面版加入 YouTube Music 搜索、播放与歌单浏览，改善 QQ 音乐算法歌单读取，并让命令面板用方向键浏览时始终显示当前选中项。",
+      "ytmusicDesktop": {
+        "title": "桌面版支持 YouTube Music",
+        "description": "连接 YouTube Music 账号后，可以搜索、播放歌曲并浏览个人歌单。当前接入暂不提供 YouTube Music 歌词。"
+      },
+      "qqAlgorithmPlaylists": {
+        "title": "QQ 音乐算法歌单读取改进",
+        "description": "登录后，QQ 音乐算法歌单现在可以通过更新后的接口正常读取。"
+      },
+      "commandPaletteKeyboardScroll": {
+        "title": "命令面板键盘浏览更顺畅",
+        "description": "在命令面板中用方向键移动时，列表会自动滚动，让当前选中结果保持可见。"
+      }
+    },
     "v0_7_16": {
       "intro": "0.7.16 把 AMLL 歌词切到官方接口，QQ 音乐歌曲能找到的 AMLL 歌词更多，手动匹配也能直接搜 AMLL；另外新增首页用 Tab 切换页签，并修复本地搜索结果缺少专辑与歌手链接的问题。",
       "amllSource": {

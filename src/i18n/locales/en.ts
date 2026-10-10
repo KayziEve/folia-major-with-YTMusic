@@ -2803,6 +2803,21 @@ export default {
         "description": "When signed in, your own private playlists now load their songs, with real paging. Self-hosted backends must run qq-music-api 3.1.2 or later; older backends fall back automatically, and a playlist that cannot be read now says it is not public instead of silently showing as empty."
       }
     },
+    "v0_7_17": {
+      "intro": "0.7.17 brings YouTube Music search and playback to the desktop app, improves access to QQ Music playlists, and keeps keyboard selection visible in the command palette.",
+      "ytmusicDesktop": {
+        "title": "YouTube Music on Desktop",
+        "description": "Connect your YouTube Music account to search and play songs and browse your playlists. YouTube Music lyrics are not available in this integration."
+      },
+      "qqAlgorithmPlaylists": {
+        "title": "More QQ Music Playlists",
+        "description": "After signing in, QQ Music algorithm playlists can now load with the updated provider API."
+      },
+      "commandPaletteKeyboardScroll": {
+        "title": "Clearer Command Palette Navigation",
+        "description": "Using the arrow keys in the command palette now scrolls the list to keep the selected result visible."
+      }
+    },
     "v0_7_16": {
       "intro": "0.7.16 moves AMLL lyrics to the official API, finds far more AMLL lyrics for QQ Music songs, and lets manual matching search AMLL directly. It also adds Tab switching between home tabs and fixes missing album and artist links in local search results.",
       "amllSource": {
