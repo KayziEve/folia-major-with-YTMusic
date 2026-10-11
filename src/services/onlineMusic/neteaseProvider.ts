@@ -74,6 +74,19 @@ const normalizeStringList = (value: unknown): string[] => (
         : []
 );
 
+// 网易云 `/user/playlist` 给「我喜欢的音乐」的标记：`specialType: 5`（普通歌单是 0）。
+const NETEASE_LIKED_PLAYLIST_SPECIAL_TYPE = 5;
+
+/**
+ * `/user/playlist` 的条目是不是这个账号自己的「我喜欢的音乐」：`specialType: 5` 且创建者就是这个账号。
+ * 收藏的别人的「喜欢的音乐」也是 5，标成 isLiked 会让「从歌单移除」变成取消自己账号的喜欢，所以必须比对创建者。
+ */
+const isOwnNeteaseLikedPlaylist = (raw: any, userId: MediaId): boolean => {
+    if (Number(raw?.specialType) !== NETEASE_LIKED_PLAYLIST_SPECIAL_TYPE) return false;
+    const creatorId = raw?.creator?.userId ?? raw?.userId;
+    return creatorId !== undefined && creatorId !== null && String(creatorId) === String(userId);
+};
+
 const normalizeCollection = (raw: any, type = 'playlist'): ProviderCollection => {
     const artists = (Array.isArray(raw?.artists)
         ? raw.artists
@@ -443,7 +456,10 @@ export const neteaseProvider: OnlineMusicProvider = {
     library: {
         async getUserPlaylists(userId, limit, offset) {
             const response = await neteaseApi.getUserPlaylists(toNeteaseId(userId), limit, offset);
-            const items = (response?.playlist || []).map((item: any) => normalizeCollection(item));
+            // 只有用户歌单列表知道「这是谁的歌单」，「我喜欢的音乐」在这里标 isLiked；归一化结果带着它进缓存，回灌时照样保留。
+            const items = (response?.playlist || []).map((item: any) => normalizeCollection(
+                isOwnNeteaseLikedPlaylist(item, userId) ? { ...item, isLiked: true } : item,
+            ));
             return { items, hasMore: items.length === limit, nextOffset: offset + items.length };
         },
         async getLikedSongIds(userId) {

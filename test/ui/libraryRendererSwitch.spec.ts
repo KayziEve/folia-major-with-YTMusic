@@ -14,12 +14,18 @@ import type { SongResult } from '../../src/types';
 // 完整应用里的 renderer 切换（开发版浮层）。行为探针已经在假宿主里把两套 UI 的语义对齐了；
 // 这里只验证探针覆盖不到的那一层：真实 App 的装配——浮层出现在哪、TUI 经由真实的播放端口把歌
 // 交给真实的播放控制器、命令面板的筛选与 --play 在 TUI 上同样生效。
+// B11：bravais 也参与切换——打开的集合换进墙里再换回网格；切走时 bravais 的 transitions.reset 丢掉还没用掉的起点；
+// 播放队列与当前歌曲的身份在三套之间来回都不变。
 
 const filterBox = (page: Page) => page.getByTestId('command-palette-filter');
 const filterInput = (page: Page) => filterBox(page).getByRole('combobox');
 const rendererSwitch = (page: Page) => page.getByTestId('dev-library-renderer-switch');
 const tui = (page: Page) => page.locator('[data-library-renderer="tui"]');
 const grid = (page: Page) => page.locator('[data-library-renderer="grid"]');
+const bravais = (page: Page) => page.locator('[data-library-renderer="bravais"]');
+const layerOf = (page: Page, renderer: 'grid' | 'tui' | 'bravais') => (
+    renderer === 'grid' ? grid(page) : renderer === 'tui' ? tui(page) : bravais(page)
+);
 
 const openAllSongs = async (page: Page) => {
     await installBaseState(page, { neteaseMode: 'guest', localImportFixture });
@@ -47,7 +53,7 @@ const openLocalHome = async (page: Page) => {
     await expect(page.getByText('All Songs').first()).toBeVisible();
 };
 
-const switchTo = async (page: Page, renderer: 'grid' | 'tui') => {
+const switchTo = async (page: Page, renderer: 'grid' | 'tui' | 'bravais') => {
     await rendererSwitch(page).locator(`[data-renderer="${renderer}"]`).click();
 };
 
@@ -80,6 +86,46 @@ test('the DEV switch moves the open collection into the TUI and back', async ({ 
     await expect(grid(page)).toHaveCount(1);
     await expect(tui(page)).toHaveCount(0);
     await expect(page.getByText('Midnight Train').first()).toBeVisible();
+});
+
+// B11：切到 bravais，打开的集合换进墙里（缝里是它的标题）；切回网格时 bravais 的 transitions.reset 丢掉还没用掉的
+// 起点磁贴与移除起点（宿主切 suite 的同一条路径：switchLibrarySuite 对每套 suite 调 reset）。
+test('the DEV switch moves the open collection into the bravais wall and back, and resets the unused origins', async ({ page }) => {
+    await openAllSongs(page);
+
+    await switchTo(page, 'bravais');
+    await expect(bravais(page)).toHaveCount(1);
+    await expect(grid(page)).toHaveCount(0);
+    await expect(page.locator('[data-library-stage="bravais"] [data-bravais-seam-title]').first()).toHaveText('All Songs');
+    await expect(page.locator('.bravais-tile[data-library-entry]').first()).toContainText('Midnight Train');
+
+    const origins = () => page.evaluate(async () => {
+        const stagePath = '/src/library/suites/bravais/bravaisStageStore.ts';
+        const uiPath = '/src/library/suites/bravais/bravaisUiStore.ts';
+        const { useBravaisStageStore } = await import(/* @vite-ignore */ stagePath);
+        const { useBravaisUiStore } = await import(/* @vite-ignore */ uiPath);
+        return {
+            pending: useBravaisStageStore.getState().pendingOrigin as unknown,
+            removal: useBravaisUiStore.getState().removalOrigin as unknown,
+        };
+    });
+    // 模拟「点了一张磁贴、还没换层」与「⋯ → 移出、还没翻」留下的起点。
+    await page.evaluate(async () => {
+        const stagePath = '/src/library/suites/bravais/bravaisStageStore.ts';
+        const uiPath = '/src/library/suites/bravais/bravaisUiStore.ts';
+        const { setBravaisPendingOrigin } = await import(/* @vite-ignore */ stagePath);
+        const { useBravaisUiStore } = await import(/* @vite-ignore */ uiPath);
+        setBravaisPendingOrigin({ fromLayerKey: 'stale-layer', slotKey: '0,0,0' });
+        useBravaisUiStore.setState({ removalOrigin: { layerKey: 'stale-layer', slotKey: '0,0,1' } });
+    });
+    expect(await origins()).not.toEqual({ pending: null, removal: null });
+
+    await switchTo(page, 'grid');
+    await expect(grid(page)).toHaveCount(1);
+    await expect(bravais(page)).toHaveCount(0);
+    await expect(page.locator('[data-library-stage="bravais"]')).toHaveCount(0);
+    await expect(page.getByText('Midnight Train').first()).toBeVisible();
+    expect(await origins()).toEqual({ pending: null, removal: null });
 });
 
 test('grid to TUI and back preserves the playing queue and current song identities', async ({ page }) => {
@@ -151,10 +197,14 @@ test('grid to TUI and back preserves the playing queue and current song identiti
         };
     });
     expect(await playing.evaluate(snapshot => snapshot.queueIndex)).toBe(0);
-    for (const renderer of ['tui', 'grid'] as const) {
+    // B11 起 bravais 也在这一圈里（它的集合 surface 是不接指针的锚点，看 attached 而不是 visible）。
+    for (const renderer of ['tui', 'bravais', 'grid'] as const) {
         await switchTo(page, renderer);
-        await expect(renderer === 'tui' ? tui(page) : grid(page)).toBeVisible();
-        await expect(renderer === 'tui' ? grid(page) : tui(page)).toHaveCount(0);
+        if (renderer === 'bravais') await expect(bravais(page)).toHaveCount(1);
+        else await expect(layerOf(page, renderer)).toBeVisible();
+        for (const other of (['grid', 'tui', 'bravais'] as const).filter(candidate => candidate !== renderer)) {
+            await expect(layerOf(page, other)).toHaveCount(0);
+        }
         expect(await playing.evaluate(snapshot => snapshot.read())).toEqual({ sameQueue: true, sameSong: true, queueIndex: 0 });
     }
     await playing.dispose();

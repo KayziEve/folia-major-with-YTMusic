@@ -194,10 +194,13 @@ describe('installing suite chrome commands', () => {
         ])).toThrow(/Duplicate command id "fixture-wall-seam-spine"/);
     });
 
-    it('installs what the real registry declares: nothing yet, since neither grid nor TUI has chrome actions', () => {
+    it('installs what the real registry declares (B6: five bravais actions, B6b③: three see-through ones), idempotently', () => {
         const before = COMMAND_PALETTE_COMMANDS.map(command => command.id);
         installLibrarySuiteChromeCommands();
         installLibrarySuiteChromeCommands();
+        const bravais = ['seam-full', 'seam-spine', 'seam-hide', 'seam-here', 'list', 'directory', 'locate-playing', 'wall-look', 'more-windows', 'fewer-windows'].map(id => `bravais-${id}`);
+        expect(COMMAND_PALETTE_COMMANDS.map(command => command.id)).toEqual([...before, ...bravais]);
+        setSuiteChromeCommands([]);
         expect(COMMAND_PALETTE_COMMANDS.map(command => command.id)).toEqual(before);
     });
 });

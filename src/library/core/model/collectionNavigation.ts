@@ -1,4 +1,5 @@
 import type { CollectionNavigationSnapshot, GridViewCollectionDescriptor } from '../contracts/collection';
+import type { LibraryNavigationCrumb } from '../contracts/suite';
 import { collectionKey } from './collectionIdentity';
 
 // src/library/core/model/collectionNavigation.ts
@@ -54,6 +55,18 @@ export const resolveCollectionPopTo = (
     if (depth === 0) return null;
     return { ...snapshot, stack: snapshot.stack.slice(0, depth) };
 };
+
+/**
+ * 导航栈投影成面包屑（B11）：每一层的 collectionKey、名字与类型，自底向上按位置排列（重复的集合各占一项）。
+ * 没有打开的栈时是空数组。纯投影，名字取描述里的 name（缺了就是空串，由 suite 决定怎么显示）。
+ */
+export const projectNavigationTrail = (
+    snapshot: CollectionNavigationSnapshot | null | undefined,
+): LibraryNavigationCrumb[] => (snapshot?.stack ?? []).map(collection => ({
+    key: collectionKey(collection),
+    name: typeof collection.name === 'string' ? collection.name : '',
+    type: collection.type,
+}));
 
 /** 两份快照是不是同一个位置：都为空，或同 origin、同深度、逐层 collectionKey 一致（描述里的其它字段不比）。 */
 export const isSameCollectionPath = (

@@ -12,6 +12,7 @@ import {
     HOME_FAVORITE_ALBUM_COUNTS,
     HOME_FM_COUNT,
     HOME_FM_PREFIX,
+    HOME_LIKED_PLAYLIST,
     HOME_PLAYLIST_FIXTURES,
     HOME_RECOMMENDED_COUNTS,
     homeFavoriteAlbumId,
@@ -62,6 +63,7 @@ type CollectionData = {
     songs: UnifiedSong[];
     error?: 'not-public';
     isOwned?: boolean;
+    description?: string;
 };
 
 const collections = new Map<string, CollectionData>();
@@ -164,6 +166,7 @@ export const resetFakeProviders = (): void => {
             songs: rule.rawIndexes.map(index => makeOnlineSong(rule.providerId, rule.prefix, index)),
             ...(rule.collectionId === 'private' ? { error: 'not-public' as const } : {}),
             ...(rule.isOwned ? { isOwned: true } : {}),
+            ...(rule.description ? { description: rule.description } : {}),
         });
     });
     // 首页档的云盘曲目（集合详情档不会请求它）。
@@ -269,6 +272,7 @@ const describe = (data: CollectionData | undefined, fallback?: ProviderCollectio
         tracksUpdatedAt: PROBE_TRACKS_UPDATED_AT,
         updatedAt: PROBE_TRACKS_UPDATED_AT,
         ...(data.isOwned ? { isOwned: true } : {}),
+        ...(data.description ? { description: data.description } : {}),
     };
 };
 
@@ -314,7 +318,11 @@ const createHomeExtensions = (providerId: string) => ({
     library: {
         getUserPlaylists: (_userId: MediaId, limit: number, offset: number) => run(
             providerId, 'userPlaylists', `${providerId}:userPlaylists`, { offset, limit },
-            () => pageOf((HOME_PLAYLIST_FIXTURES[providerId] ?? []).map(describeOnlineFixture), limit, offset),
+            () => pageOf((HOME_PLAYLIST_FIXTURES[providerId] ?? []).map(fixtureId => (
+                providerId === HOME_LIKED_PLAYLIST.providerId && fixtureId === HOME_LIKED_PLAYLIST.fixture
+                    ? { ...describeOnlineFixture(fixtureId), isLiked: true }
+                    : describeOnlineFixture(fixtureId)
+            )), limit, offset),
         ),
         getUserAlbums: (_userId: MediaId, limit: number, offset: number) => run(
             providerId, 'userAlbums', `${providerId}:userAlbums`, { offset, limit },

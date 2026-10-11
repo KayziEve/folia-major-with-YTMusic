@@ -47,7 +47,7 @@ import {
     resolveLibrarySurface,
 } from '../registry';
 import { resolveLibraryLayerPresentation } from '../core/model/libraryStage';
-import { resolveCollectionPush } from '../core/model/collectionNavigation';
+import { projectNavigationTrail, resolveCollectionPush } from '../core/model/collectionNavigation';
 import { LIBRARY_HOME_SESSION_KEY } from './librarySuiteChoice';
 import LibrarySuiteStageSlot from './LibrarySuiteStageSlot';
 
@@ -75,13 +75,14 @@ const HOME_SUITE_SESSION_KEY = LIBRARY_HOME_SESSION_KEY;
 // 声明了转场层的 suite：常驻渲染，只有当前负责集合层的那套收到 enabled。
 const SUITE_OVERLAYS = listLibrarySuiteOverlays();
 
-/** 导航快照 → 交给 suite 的导航上下文（转场钩子与 stage 共用一种形状）。 */
+/** 导航快照 → 交给 suite 的导航上下文（转场钩子与 stage 共用一种形状；B11 起带上每一层的面包屑）。 */
 const toNavigationContext = (snapshot: CollectionNavigationSnapshot | null): LibraryNavigationContext => {
     const depth = snapshot?.stack.length ?? 0;
     return {
         depth,
         origin: snapshot?.origin ?? null,
         activeType: snapshot?.stack[depth - 1]?.type ?? null,
+        trail: projectNavigationTrail(snapshot),
     };
 };
 
@@ -634,6 +635,11 @@ const GridViewOverlayHost: React.FC<GridViewOverlayHostProps> = ({
                 theme={surfaceProps.theme}
                 isDaylight={isDaylight}
                 navigation={stageNavigation}
+                onBackToPlayer={surfaceProps.onBackToPlayer}
+                onTogglePlayback={surfaceProps.onTogglePlayback}
+                onEnterPlaybackView={surfaceProps.onEnterPlaybackView}
+                onOpenLattice={surfaceProps.onOpenLattice}
+                tools={surfaceProps.stageTools}
             />
             <AnimatePresence initial={false}>
                 {layerPresentation.showBackdrop && (

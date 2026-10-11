@@ -31,7 +31,8 @@ import { AiHelpPromptModal } from './AiHelpPromptModal';
 import SettingsHelpActions from './SettingsHelpActions';
 import { openPonderNavigation } from '../../services/ponder/pagePonderTarget';
 import ReleaseNotesDialog from './ReleaseNotesDialog';
-import { discordIconUrl, openDiscordInvite } from '../shared/discordCommunity';
+import { JoinCommunityButton } from '../shared/JoinCommunityButton';
+import { copyTextToClipboard } from '../../utils/clipboard';
 import meowImageUrl from '../../../build/miao.png';
 import type { LyricData } from '../../types';
 import { type SettingsModalState, type SettingsSubviewId, type VisualizerSettingsSection } from '../../stores/useSettingsModalStore';
@@ -69,6 +70,7 @@ import { selectAudioSettingsSnapshot, useAudioSettingsStore } from '../../stores
 import { selectHomeLayoutSettingsSnapshot, useHomeLayoutSettingsStore } from '../../stores/useHomeLayoutSettingsStore';
 import { setNavidromeEnabledState, useLibraryStore } from '../../stores/useLibraryStore';
 import { hasLibrarySuiteChoice } from '../../library/registry';
+import { useIsBravaisLibraryActive } from '../../library/app/bravaisLibraryActive';
 
 const DEFAULT_OPENAI_TEMPERATURE = '0.7';
 const AUR_PACKAGE_URL = 'https://aur.archlinux.org/packages/folia-major-bin';
@@ -583,31 +585,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         });
     }, [updateStatus?.availableVersion, updateStatus?.updateSeen]);
 
-    const copyText = async (text: string) => {
-        if (navigator.clipboard?.writeText && window.isSecureContext) {
-            await navigator.clipboard.writeText(text);
-            return;
-        }
-
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        textarea.style.pointerEvents = 'none';
-        document.body.appendChild(textarea);
-        textarea.select();
-
-        try {
-            document.execCommand('copy');
-        } finally {
-            document.body.removeChild(textarea);
-        }
-    };
-
     const handleCopyVersionInfo = async () => {
         try {
-            await copyText(VERSION_INFO);
+            await copyTextToClipboard(VERSION_INFO);
             setVersionCopied(true);
             window.setTimeout(() => setVersionCopied(false), 1800);
         } catch (error) {
@@ -942,7 +922,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
     const handleCopyStageAddress = async (address: string) => {
         try {
-            await copyText(address);
+            await copyTextToClipboard(address);
             setStageAddressCopied(true);
             window.setTimeout(() => setStageAddressCopied(false), 1800);
         } catch (error) {
@@ -1304,9 +1284,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
     );
     const canEnableAutoUpdate = Boolean(electronSettings.ENABLE_UPDATE_CHECK && updateStatus?.autoUpdateSupported);
 
+    const isBravaisSuiteActive = useIsBravaisLibraryActive();
     const settingsNavGroups = useMemo(
-        () => buildSettingsNavGroups(t, { isElectron, hasLibrarySuiteChoice: hasLibrarySuiteChoice() }),
-        [t, isElectron],
+        () => buildSettingsNavGroups(t, { isElectron, hasLibrarySuiteChoice: hasLibrarySuiteChoice(), isBravaisSuiteActive }),
+        [t, isElectron, isBravaisSuiteActive],
     );
     const activeSettingsNavItem = findSettingsNavItem(settingsNavGroups, activeSettingsSection);
     const prefersReducedMotion = useReducedMotionFor('settingsScroll');
@@ -1504,16 +1485,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                         <CircleHelp size={16} />
                                         {t('aiHelp.openButton', 'Need help?')}
                                     </button>
-                                    {/* 一排单色胶囊里唯一带颜色的那颗，靠色彩而不是体积被看见。 */}
-                                    <button
-                                        type="button"
-                                        onClick={openDiscordInvite}
-                                        className="px-6 py-2 bg-[#5865F2]/15 hover:bg-[#5865F2]/25 ring-1 ring-inset ring-[#5865F2]/30 transition-colors rounded-full text-sm font-medium flex items-center gap-2"
-                                        style={{ color: 'var(--text-primary)' }}
-                                    >
-                                        <img src={discordIconUrl} alt="" aria-hidden className="h-[18px] w-[18px] rounded-[5px]" />
-                                        {t('help.joinDiscord', 'Join our Discord')}
-                                    </button>
+                                    <JoinCommunityButton />
                                 </div>
 
                                 {/* Author Info (Moved from Footer) */}
@@ -1826,7 +1798,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     playerCapConnectionStatus,
                                                     playerCapPlayers,
                                                     obsBrowserSourceStatus,
-                                                    onCopyText: copyText,
+                                                    onCopyText: copyTextToClipboard,
                                                     onRegenerateObsBrowserSourceToken,
                                                     onRegenerateStageToken,
                                                     onStageSourceChange,
@@ -2229,7 +2201,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 isDaylight={isDaylight}
                 theme={theme}
                 onClose={() => setShowAiHelpPrompt(false)}
-                onCopyText={copyText}
+                onCopyText={copyTextToClipboard}
             />
             <ReleaseNotesDialog
                 isOpen={showReleaseNotes}

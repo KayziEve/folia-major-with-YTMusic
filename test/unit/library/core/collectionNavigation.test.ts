@@ -3,6 +3,7 @@ import type { CollectionNavigationSnapshot, GridViewCollectionDescriptor } from 
 import {
     isSameCollectionPath,
     isSameCollectionVisit,
+    projectNavigationTrail,
     resolveCollectionPopTo,
     resolveCollectionPush,
 } from '@/library/core/model/collectionNavigation';
@@ -10,6 +11,7 @@ import {
 // test/unit/library/core/collectionNavigation.test.ts
 // N1 的纯规则：进入集合时只折叠紧邻往返（栈顶相同 → noop，倒数第二层相同 → back，其余 → push，栈里可以有重复）；
 // 面包屑跳层（popCollectionTo）的目标栈；以及历史日志比较记录用的两种「同一个位置 / 同一次浏览」。
+// B11：导航栈投影成面包屑（按位置、重复的集合各占一项，键与浏览会话一致）。
 
 const online = (type: 'album' | 'artist' | 'playlist', id: string | number, providerId = 'netease') => ({
     source: 'online',
@@ -145,5 +147,23 @@ describe('collection path comparison', () => {
         expect(isSameCollectionVisit(snap(playlist), snap(skyline))).toBe(false);
         expect(isSameCollectionVisit(snap(playlist), { origin: 'player', stack: [playlist] })).toBe(false);
         expect(isSameCollectionVisit(null, snap(playlist))).toBe(false);
+    });
+});
+
+describe('projectNavigationTrail', () => {
+    it('lists every layer bottom-up by position, duplicates included, keyed like the browse session', () => {
+        expect(projectNavigationTrail(snap(playlist, polaris, skyline, polaris))).toEqual([
+            { key: 'online:netease:playlist:root', name: 'playlist root', type: 'playlist' },
+            { key: 'online:netease:artist:polaris', name: 'artist polaris', type: 'artist' },
+            { key: 'online:netease:album:skyline', name: 'album skyline', type: 'album' },
+            { key: 'online:netease:artist:polaris', name: 'artist polaris', type: 'artist' },
+        ]);
+    });
+
+    it('is empty without an open stack and tolerates a missing name', () => {
+        expect(projectNavigationTrail(null)).toEqual([]);
+        expect(projectNavigationTrail(undefined)).toEqual([]);
+        const nameless = { ...skyline, name: undefined } as unknown as GridViewCollectionDescriptor;
+        expect(projectNavigationTrail(snap(nameless))).toEqual([{ key: 'online:netease:album:skyline', name: '', type: 'album' }]);
     });
 });

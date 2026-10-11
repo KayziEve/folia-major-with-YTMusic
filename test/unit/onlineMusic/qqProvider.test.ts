@@ -269,6 +269,13 @@ describe('qqProvider', () => {
         expect(normalizeQqSong(song)).toEqual(song);
     });
 
+    // 「我喜欢」= 自建目录 201：首页特殊集合靠 isLiked 认它。收藏条目也带 dirId（创建者的目录号），不算。
+    it('marks only the owned dirId 201 playlist as the liked collection', () => {
+        expect(normalizeQqCollection(PLAYLIST_ITEM).isLiked).toBe(true);
+        expect(normalizeQqCollection({ tid: 8, dirId: 202, dirName: '自建歌单', songNum: 1 }).isLiked).toBeUndefined();
+        expect(normalizeQqCollection({ dissid: 9, dirId: 201, name: '别人的我喜欢', songnum: 1 }).isLiked).toBeUndefined();
+    });
+
     it('normalizes the playlist and profile payloads, including a profile without a display name', () => {
         expect(normalizeQqCollection(PLAYLIST_ITEM)).toEqual({
             providerId: 'qq',
@@ -278,6 +285,7 @@ describe('qqProvider', () => {
             coverUrl: 'https://img.example.test/big.jpg',
             trackCount: 2,
             providerData: { tid: 7, dirId: 201, owned: true },
+            isLiked: true,
         });
         expect(normalizeQqCollection(normalizeQqCollection(PLAYLIST_ITEM))).toEqual(normalizeQqCollection(PLAYLIST_ITEM));
         expect(normalizeQqCollection({ id: 8, title: '收藏歌单', picurl: 'https://img.example.test/fav.jpg', songnum: 3 })).toEqual({

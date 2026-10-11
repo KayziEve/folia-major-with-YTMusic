@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { applyLocalSongMatchSelection, resolveLyricMatchMetadataSelection } from '@/services/localSongMatchSelectionService';
+import { applyLocalSongMatchSelection, resolveLyricMatchMetadataSelection, setLocalSongPureMusicMark } from '@/services/localSongMatchSelectionService';
 import type { OnlineMetadataCandidate } from '@/services/onlineMetadataSearchService';
 
 // test/unit/localLibrary/localSongMatchSelectionService.test.ts
@@ -102,6 +102,70 @@ describe('applyLocalSongMatchSelection', () => {
             matchedLyricsProviderPlatform: 'qq',
             hasManualLyricSelection: true,
         });
+    });
+
+    it('marks a song as instrumental through the lyrics-only path, leaving metadata and cover alone', async () => {
+        await setLocalSongPureMusicMark('song-1', true);
+
+        expect(mocks.restoreImportedMetadata).not.toHaveBeenCalled();
+        expect(mocks.applyMatchedMetadata).toHaveBeenCalledOnce();
+        expect(mocks.applyMatchedMetadata).toHaveBeenCalledWith('song-1', {}, {
+            lyricsOnly: true,
+            songPatch: {
+                markedPureMusic: true,
+                matchedIsPureMusic: true,
+                matchedLyrics: undefined,
+                matchedLyricsSongId: undefined,
+                matchedLyricsSource: undefined,
+                matchedLyricsProviderPlatform: undefined,
+                lyricsSource: 'online',
+                hasManualLyricSelection: true,
+            },
+        });
+        expect(mocks.cacheLocalSongOnlineCover).not.toHaveBeenCalled();
+        expect(mocks.removeCachedCover).not.toHaveBeenCalled();
+    });
+
+    it('unmarking returns the song to automatic lyric matching', async () => {
+        await setLocalSongPureMusicMark('song-1', false);
+
+        expect(mocks.applyMatchedMetadata).toHaveBeenCalledWith('song-1', {}, {
+            lyricsOnly: true,
+            songPatch: {
+                markedPureMusic: undefined,
+                matchedIsPureMusic: undefined,
+                lyricsSource: undefined,
+                hasManualLyricSelection: false,
+            },
+        });
+    });
+
+    it('a manual online lyric pick clears the instrumental mark', async () => {
+        await applyLocalSongMatchSelection({
+            songId: 'song-1',
+            metadata: 'keep',
+            cover: 'keep',
+            lyrics: 'online',
+            onlineLyrics: { lyrics: { lines: [], isWordByWord: false }, songId: 42, source: 'netease', isPureMusic: false },
+        });
+
+        const [, , options] = mocks.applyMatchedMetadata.mock.calls[0];
+        expect(options.songPatch).toHaveProperty('markedPureMusic', undefined);
+        expect(options.songPatch).toMatchObject({ lyricsSource: 'online', matchedLyricsSongId: 42, matchedIsPureMusic: false });
+    });
+
+    it('an instrumental result picked without lyric lines is saved as the mark', async () => {
+        const applied = await applyLocalSongMatchSelection({
+            songId: 'song-1',
+            metadata: 'keep',
+            cover: 'keep',
+            lyrics: 'online',
+            setPureMusicMark: true,
+        });
+
+        expect(applied.lyricsApplied).toBe(true);
+        const [, , options] = mocks.applyMatchedMetadata.mock.calls[0];
+        expect(options.songPatch).toMatchObject({ markedPureMusic: true, matchedIsPureMusic: true, lyricsSource: 'online' });
     });
 
     it('restores imported metadata and lyric selection in one catalog transaction', async () => {

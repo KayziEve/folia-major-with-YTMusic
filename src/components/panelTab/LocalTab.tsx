@@ -105,6 +105,9 @@ const LocalTab: React.FC<LocalTabProps> = ({
         }
         if ((localData.matchedLyrics?.lines?.length ?? 0) > 0) {
             sources.push({ key: 'online', label: getLyricProviderLabel(localData.matchedLyricsSource, localData.matchedLyricsProviderPlatform) });
+        } else if (localData.markedPureMusic) {
+            // 标记为纯音乐的歌占 online 这一位：选它就是不显示歌词，有本地 / 内嵌歌词时也能切回来。
+            sources.push({ key: 'online', label: t('localMusic.statusPureMusic') });
         }
         return sources;
     }, [localData, t]);
@@ -118,6 +121,8 @@ const LocalTab: React.FC<LocalTabProps> = ({
         if (localData.hasEmbeddedLyrics) states.push(t('localMusic.statusEmbedded'));
         if ((localData.matchedLyrics?.lines?.length ?? 0) > 0) {
             states.push(getLyricProviderLabel(localData.matchedLyricsSource, localData.matchedLyricsProviderPlatform));
+        } else if (localData.markedPureMusic) {
+            states.push(t('localMusic.statusPureMusic'));
         }
         return states.length > 0 ? states.join(' / ') : t('localMusic.statusNone');
     }, [localData, t]);

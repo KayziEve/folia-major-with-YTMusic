@@ -33,6 +33,7 @@ import {
 import { readHomeLibrary, seedHomeLibrary } from './homeLocalFixtures';
 import { installHomeServiceHook } from './serviceStubs';
 import { installHomeProbeApi } from './homeProbeApi';
+import { PROBE_STAGE_TOOLS } from './probeStageTools';
 import type { HomeProbeDescriptor } from './probeApi';
 
 // dev/probes/homeBehavior/useHomeProbeHarness.ts
@@ -178,6 +179,7 @@ export const useHomeProbeModel = (initial: HomeProbeLibrary): { model: HomeViewM
     const [localMusicState, setLocalMusicState] = useState<HomeLocalMusicState>(INITIAL_LOCAL_STATE);
     const [navidromeFocusedAlbumIndex, setNavidromeFocusedAlbumIndex] = useState(0);
     const [mountKey, setMountKey] = useState(0);
+    const [stage, setStage] = useState<{ enabled: boolean; active?: boolean }>({ enabled: false });
     const localLibraryCatalog = useLocalLibraryCatalog(localSongs);
     const account = useLibraryAccountController(PROBE_ACCOUNT_TABLES);
     const { providers, activeProviderId } = useLibraryAccountProviders(account);
@@ -207,6 +209,9 @@ export const useHomeProbeModel = (initial: HomeProbeLibrary): { model: HomeViewM
     }, []);
 
     const activeCollections = activeProvider?.collections;
+    // 前往 Lattice（首页工具格「队列拼贴」、bravais 工具面板）：只记账。缺省不给（首页工具格与原来一样），用例经 setLattice 打开。
+    const [latticeEnabled, setLatticeEnabled] = useState(false);
+    const openLattice = useCallback(() => recordProbeCall({ kind: 'openLattice', ids: [] }), []);
     const surfaceProps = useMemo<HomeSurfaceProps>(() => ({
         ...PROBE_SURFACE_CALLBACKS,
         onRefreshUser: () => void refreshUser(),
@@ -224,8 +229,14 @@ export const useHomeProbeModel = (initial: HomeProbeLibrary): { model: HomeViewM
         setNavidromeFocusedAlbumIndex,
         onSearchCommitted: (query, sourceTab) => recordProbeCall({ kind: 'searchCommitted', ids: [], text: query, key: String(sourceTab) }),
         onOpenSettings: () => {},
+        stageEnabled: stage.enabled,
+        stageIsActive: Boolean(stage.active),
+        onOpenStagePlayer: stage.enabled ? () => recordProbeCall({ kind: 'openStagePlayer', ids: [] }) : undefined,
+        onOpenLattice: latticeEnabled ? openLattice : undefined,
+        stageTools: PROBE_STAGE_TOOLS,
         theme: DEFAULT_THEME,
     }), [
+        stage,
         activeCollections,
         localLibraryCatalog,
         localMusicState,
@@ -235,6 +246,8 @@ export const useHomeProbeModel = (initial: HomeProbeLibrary): { model: HomeViewM
         activeProvider?.user,
         refreshLocal,
         refreshUser,
+        openLattice,
+        latticeEnabled,
     ]);
 
     const model = useMemo<HomeViewModel>(() => ({
@@ -261,6 +274,9 @@ export const useHomeProbeModel = (initial: HomeProbeLibrary): { model: HomeViewM
         providers: () => latestRef.current.account.getSnapshot().providers.map(provider => provider.providerId),
         activeProvider: () => latestRef.current.account.getSnapshot().activeProviderId,
         switchProvider: providerId => switchAndConfirm(latestRef.current.account, providerId),
+        signOut: providerId => useOnlineProviderAccountStore.getState().clearAccount(providerId),
+        setStage,
+        setLattice: setLatticeEnabled,
     }), []);
 
     return { model, mountKey };

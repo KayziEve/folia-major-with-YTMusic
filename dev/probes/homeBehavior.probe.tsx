@@ -8,6 +8,7 @@ import {
     useHomeProbeModel,
     type HomeProbeLibrary,
 } from './homeBehavior/useHomeProbeHarness';
+import { usePaletteTypingStandIn } from './paletteTypingStandIn';
 // dev/probes/homeBehavior.probe.tsx
 
 /**
@@ -29,6 +30,8 @@ const HomeProbeStage: React.FC<{ library: HomeProbeLibrary }> = ({ library }) =>
 const HomeBehaviorProbe: React.FC = () => {
     const sandbox = useMemo(isProbeSandbox, []);
     const library = useHomeProbeEnvironment(sandbox);
+    // 墙上打字交给 bravais 缝里的过滤输入位（命令面板那一支的替身，见 paletteTypingStandIn）。
+    usePaletteTypingStandIn();
 
     return (
         <div

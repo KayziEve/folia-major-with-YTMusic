@@ -100,11 +100,12 @@ export const SETTINGS_NAV_GROUP_SPECS: GroupSpec[] = [
 /**
  * Resolves the grouping into translated nav items, dropping desktop-only sections (and groups left empty) on web.
  * An anchor that marks itself `requiresLibrarySuiteChoice` is listed only when `hasLibrarySuiteChoice` is set,
- * because its section renders nothing while a single library suite is available.
+ * because its section renders nothing while a single library suite is available. Likewise `requiresBravaisSuite`
+ * is listed only while the active library suite is bravais (`isBravaisSuiteActive`).
  */
 export const buildSettingsNavGroups = (
     t: Translate,
-    options: { isElectron: boolean; hasLibrarySuiteChoice?: boolean },
+    options: { isElectron: boolean; hasLibrarySuiteChoice?: boolean; isBravaisSuiteActive?: boolean },
 ): SettingsNavGroup[] => (
     SETTINGS_NAV_GROUP_SPECS
         .map(group => ({
@@ -122,6 +123,7 @@ export const buildSettingsNavGroups = (
                             definition.section === section.id
                             && (!('electronOnly' in definition) || !definition.electronOnly || options.isElectron)
                             && (!('requiresLibrarySuiteChoice' in definition) || !definition.requiresLibrarySuiteChoice || Boolean(options.hasLibrarySuiteChoice))
+                            && (!('requiresBravaisSuite' in definition) || !definition.requiresBravaisSuite || Boolean(options.isBravaisSuiteActive))
                         ))
                         .map(([id, definition]) => ({ id, label: t(definition.labelKey) })),
                 })),

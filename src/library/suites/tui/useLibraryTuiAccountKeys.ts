@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from 'react';
+import { useExclusiveKeyLayer, type ExclusiveKeyHandler } from '../../../hooks/useExclusiveKeyLayer';
 
 // src/library/suites/tui/useLibraryTuiAccountKeys.ts
 // TUI 账户层（登录框、切换确认）开着时的按键：在 window 的捕获阶段接管，开着就独占键盘。
@@ -11,42 +11,8 @@ import { useEffect, useRef, type RefObject } from 'react';
 // - Enter / Escape 不响应长按重复。
 // 只在 isActive（账户层显示着、且首页外壳可交互）时装上监听；集合层开着时它照样在最上层，集合层的 TUI 按键
 // 看到 data-folia-keyboard-window 也会让路。
+// B10：实现提到了 src/hooks/useExclusiveKeyLayer（bravais 缝里的登录态 / 确认态共用同一份），这里保留 TUI 的名字。
 
-export type LibraryTuiAccountKeyHandler = (key: string, event: KeyboardEvent) => boolean;
+export type LibraryTuiAccountKeyHandler = ExclusiveKeyHandler;
 
-export const useLibraryTuiAccountKeys = ({
-    isActive,
-    containerRef,
-    onKey,
-}: {
-    isActive: boolean;
-    /** 账户层的根元素：判断焦点是不是在它自己的按钮上。 */
-    containerRef: RefObject<HTMLElement | null>;
-    /** 处理一次按键；返回 true 表示处理了（会 preventDefault）。 */
-    onKey: LibraryTuiAccountKeyHandler;
-}) => {
-    // 监听只装一次，回调每次渲染换成最新的。
-    const latest = useRef(onKey);
-    latest.current = onKey;
-
-    useEffect(() => {
-        if (!isActive) return;
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.ctrlKey || event.altKey || event.metaKey || event.key === 'Tab' || event.isComposing) return;
-            event.stopPropagation();
-
-            const target = event.target instanceof HTMLElement ? event.target : null;
-            const onOwnButton = Boolean(target?.closest('button') && containerRef.current?.contains(target));
-            if (onOwnButton && (event.key === 'Enter' || event.key === ' ')) return;
-
-            if (event.repeat && (event.key === 'Enter' || event.key === 'Escape')) {
-                event.preventDefault();
-                return;
-            }
-            const handled = latest.current(event.key, event);
-            if (handled || event.key.length === 1) event.preventDefault();
-        };
-        window.addEventListener('keydown', handleKeyDown, { capture: true });
-        return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
-    }, [containerRef, isActive]);
-};
+export const useLibraryTuiAccountKeys = useExclusiveKeyLayer;

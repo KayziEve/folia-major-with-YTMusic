@@ -63,6 +63,12 @@ const BOUNDARY_RULES = [
         why: '契约层不应依赖实现',
     },
     { from: /^src\/services\//, to: /^src\/(components|library\/(suites|app))\//, why: 'service 不应依赖组件' },
+    // 共享 wall 引擎与内容无关：Lattice 与资料库 suite 都用它（test/unit/wall/wallBoundaries.test.ts 同一条）。
+    {
+        from: /^src\/components\/wall\//,
+        to: /^src\/(components\/app|library)\//,
+        why: 'wall 引擎不应依赖 Lattice（components/app）或资料库',
+    },
     {
         from: /^src\/(components|hooks|stores|library\/(core\/(state|bindings)|suites|app))\//,
         to: /^src\/services\/onlineMusic\/.*(Provider|Transport)\.ts$/,

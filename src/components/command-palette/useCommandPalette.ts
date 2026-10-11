@@ -382,6 +382,12 @@ export const useCommandPalette = ({
             return;
         }
         if (paletteRequest.kind === 'filter') {
+            // A surface with its own input (the bravais seam) puts that up instead of the palette's inline box.
+            const ownInput = context.scope.filter?.ownInput;
+            if (ownInput) {
+                ownInput.open();
+                return;
+            }
             if (filterCommand) {
                 openCommand(filterCommand);
             }
@@ -519,9 +525,16 @@ export const useCommandPalette = ({
             // grids' type-to-filter, except that the palette now holds the input — which is what
             // lets one command, one box and one keyword list serve all three of them.
             if (filterCommand && !isOpen && !event.ctrlKey && !event.altKey && !event.metaKey && !isTextEntryTarget(event.target)) {
+                // A surface that draws its own input (the bravais seam) takes the typing itself; the palette only
+                // keeps the keys it owns outright (`:` and the opt-in `s`, below).
+                const ownInput = context.scope.filter?.ownInput;
                 // An IME announces itself with 'Process' before it has any text; open and let the
                 // composition land in the box.
                 if (event.key === 'Process' || event.key === 'Unidentified') {
+                    if (ownInput) {
+                        ownInput.takeKey(event);
+                        return;
+                    }
                     openCommand(filterCommand);
                     return;
                 }
@@ -535,6 +548,17 @@ export const useCommandPalette = ({
                     if (bareHotkeyCommand && isCommandPaletteCommandEnabled(bareHotkeyCommand, context)) {
                         event.preventDefault();
                         invokeCommand(bareHotkeyCommand);
+                        return;
+                    }
+                    if (ownInput) {
+                        if (paletteHotkeyOnFilteringSurface && effectiveKeyCode(event) === 'KeyS' && !event.shiftKey) {
+                            event.preventDefault();
+                            open();
+                            return;
+                        }
+                        // The surface decides whether the keystroke lands in its input or is dropped; a key it
+                        // refuses (Space, a reserved key) is left for whoever else listens.
+                        ownInput.takeKey(event);
                         return;
                     }
                     // The opening keystroke is deliberately dropped rather than seeded into the

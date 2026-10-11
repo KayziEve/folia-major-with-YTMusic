@@ -37,6 +37,7 @@ const readStore = (page: import('@playwright/test').Page, key: string) => page.e
 const seedApp = async (page: import('@playwright/test').Page, openPlayerOnLaunch: boolean) => {
     await page.addInitScript(([version, guideKey, onLaunch]) => {
         localStorage.clear();
+        localStorage.setItem('library_suite_prompt_seen', 'true');
         localStorage.setItem('i18nextLng', 'zh-CN');
         localStorage.setItem('open_player_on_launch', String(onLaunch));
         localStorage.setItem('visualizer_mode', 'classic');

@@ -43,13 +43,14 @@ import '../../dev/probes/homeBehavior/probeApi';
 // 断言的是语义：宿主收到的集合描述（provider-aware key）、上游请求账、播放 / 入队回调、本地曲库服务调用账
 // （经 serviceStubModule 的转接模块记下）、隐藏表。探针接口（window.__homeProbe）按语义命名，网格与 TUI 首页
 // 各实现一套（网格专属概念——地图、批量面板——在 TUI 上的对应见 dev/probes/homeBehavior/homeProbeApi.ts 的文件头）；
-// 标题前缀为 `[grid]` / `[tui]` 的那批用例对两个 suite 各跑一遍。`[grid-only]` 的用例点的是网格专属的 DOM
+// 标题前缀为 `[grid]` / `[tui]` / `[bravais]` 的那批用例对三个 suite 各跑一遍（B9 起 bravais 也实现首页；它的对应见
+// dev/probes/homeBehavior/bravaisHomeProbe.ts：墙就是目录，筛选与批量是本地的目录树面板，在线页签没有目录过滤）。`[grid-only]` 的用例点的是网格专属的 DOM
 // （地图按钮、卡片、批量面板按钮、确认框、Escape 阶梯），`[tui-only]` 的按 TUI 的键；`[switch]` 的在两套之间切换。
 //
 // 探针页开着 StrictMode：首页挂载时的请求会出现两次，分页断言看去重后的 offset 序列。
 // test.fixme 记录的是现状缺陷，注释里写明由哪一步转正。
 
-const SUITES = ['grid', 'tui'] as const;
+const SUITES = ['grid', 'tui', 'bravais'] as const;
 type Suite = (typeof SUITES)[number];
 const A = PROBE_PROVIDER_A;
 const B = PROBE_PROVIDER_B;
@@ -78,6 +79,9 @@ const setSuite = async (page: Page, suite: Suite) => {
     await page.evaluate(id => window.__homeProbe!.setSuite(id), suite);
     await expect.poll(() => page.evaluate(() => window.__homeProbe!.homeSuite())).toBe(suite);
     await expect(page.locator('[data-library-home="tui"]')).toHaveCount(suite === 'tui' ? 1 : 0);
+    // bravais 的首页与 stage 是 lazy chunk：加载完之前网格的首页还在，等墙上出现首页层。
+    await expect(page.locator('[data-library-home="bravais"]')).toHaveCount(suite === 'bravais' ? 1 : 0);
+    if (suite === 'bravais') await expect(page.locator('[data-library-stage="bravais"]')).toHaveAttribute('data-bravais-layer', /^home:/);
 };
 
 const setTab = (page: Page, tab: HomeTabKey) => page.evaluate(key => window.__homeProbe!.setTab(key), tab);
@@ -174,14 +178,14 @@ const showBatch = async (page: Page) => {
 
 /**
  * 关闭目录：网格是关掉 GridMap（地图退场、会话丢掉，getQuery 变成 null）；TUI 的目录视图一直开着，
- * 关闭就是丢掉会话再打开一个空的（getQuery 是 ''）。
+ * 关闭就是丢掉会话再打开一个空的（getQuery 是 ''）。bravais 与 TUI 一样（墙一直是目录），另外收起目录树面板。
  */
 const hideMap = async (page: Page) => {
     expect(await closeMap(page)).toBe(true);
     await expectDirectoryClosed(page);
 };
 const expectDirectoryClosed = async (page: Page) => {
-    if (await page.evaluate(() => window.__homeProbe!.homeSuite()) === 'tui') {
+    if (await page.evaluate(() => window.__homeProbe!.homeSuite()) !== 'grid') {
         await expect.poll(() => getQuery(page)).toBe('');
         expect(await isMapOpen(page)).toBe(true);
         return;
@@ -569,6 +573,22 @@ test.describe(`[${suite}] directory filter`, () => {
 
     test('closing the map drops the query; reopening starts unfiltered', async ({ mount, page }) => {
         await mountHome(mount, page, suite);
+        if (suite === 'bravais') {
+            // 每面墙都注册了当前页过滤（设计稿 §7.6）：在线页签上也能过滤，过滤词是目录会话的 query；关闭目录丢掉它。
+            expect(await setQuery(page, 'owned')).toBe(true);
+            await expect.poll(() => mapIds(page)).toEqual(['owned']);
+            await hideMap(page);
+            expect(await mapIds(page)).toEqual(['public', 'cloud', 'owned', 'big', 'same']);
+            // 本地的目录树面板里是同一个过滤（同一个目录 query）。
+            await showList(page, 'local');
+            await showMap(page);
+            expect(await setQuery(page, 'beta')).toBe(true);
+            await expect.poll(() => mapIds(page)).toEqual([homeFolderId('Music/Beta')]);
+            await hideMap(page);
+            await showMap(page);
+            expect(await mapIds(page)).toEqual(HOME_LOCAL_FOLDER_IDS);
+            return;
+        }
         await showMap(page);
         expect(await setQuery(page, 'owned')).toBe(true);
         await expect.poll(() => mapIds(page)).toEqual(['owned']);
@@ -875,9 +895,12 @@ test.describe(`[${suite}] hidden items`, () => {
         expect(await itemById(page, 'owned')).toMatchObject({ hidden: true, hideable: true });
         await expect.poll(() => mapIds(page)).toEqual(['public', 'cloud', 'big', 'same']);
         expect(await storedHidden(page)).toEqual({ [`online:${A}`]: ['owned'] });
-        await setQuery(page, 'owned');
-        await expect.poll(() => mapIds(page)).toEqual([]);
-        await setQuery(page, '');
+        // bravais 的在线页签没有目录过滤（首页不注册过滤）。
+        if (suite !== 'bravais') {
+            await setQuery(page, 'owned');
+            await expect.poll(() => mapIds(page)).toEqual([]);
+            await setQuery(page, '');
+        }
 
         expect(await toggleHidden(page, 'owned')).toBe(true);
         await expect.poll(() => visibleIds(page)).toEqual(['public', 'cloud', 'owned', 'big', 'same']);

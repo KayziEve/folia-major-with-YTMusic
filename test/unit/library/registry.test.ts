@@ -24,8 +24,9 @@ import type { LibrarySuiteManifest } from '@/library/core/contracts/suite';
 // 启用 VITE_LIBRARY_TUI=true，所以开发验证 TUI 也在。纯规则的边界情况在 core/librarySuites.test.ts。
 
 describe('library suite registry', () => {
-    it('discovers the grid (default, first) and the dev-only TUI', () => {
-        expect(listLibrarySuites().map(suite => suite.id)).toEqual(['grid', 'tui']);
+    it('discovers the grid (default, first), bravais and the dev-only TUI', () => {
+        // B6 起 bravais 进 registry（正式 suite，不门控）。
+        expect(listLibrarySuites().map(suite => suite.id)).toEqual(['grid', 'bravais', 'tui']);
         expect(DEFAULT_LIBRARY_SUITE_ID).toBe('grid');
         expect(hasLibrarySuite('tui')).toBe(true);
         expect(hasLibrarySuite('renderer')).toBe(false);
@@ -49,6 +50,15 @@ describe('library suite registry', () => {
         expect(tui.component).toBe(getLibrarySuite('tui')?.surfaces.account?.component);
         expect([...tui.declaredActions.actions].sort()).toEqual([...LIBRARY_ACCOUNT_ACTION_IDS].sort());
         expect(resolveLibrarySurface('account', 'tui')).toBe(tui);
+    });
+
+    it('renders the bravais account surface itself (B10) and declares all seven account actions', () => {
+        // 登录与确认在缝里（BravaisAccount），不再回退 grid 的登录弹窗。
+        const bravais = resolveLibrarySurface('account', 'bravais');
+        expect(bravais).toMatchObject({ suiteId: 'bravais', isFallback: false });
+        expect(bravais.component).not.toBe(resolveLibrarySurface('account', 'grid').component);
+        expect(bravais.component).toBe(getLibrarySuite('bravais')?.surfaces.account?.component);
+        expect([...bravais.declaredActions.actions].sort()).toEqual([...LIBRARY_ACCOUNT_ACTION_IDS].sort());
     });
 
     it('still answers a suite without an account surface with the grid one as a whole', () => {
@@ -119,6 +129,9 @@ describe('library suite registry', () => {
         // 歌手页（P4.2 / P4.3）：两套都实现了全部歌手页动作（网格的播放全部只经命令面板，TUI 还有 Ctrl+Enter）。
         expect([...resolveLibrarySurfaceActions('artist', 'grid').actions].sort()).toEqual([...LIBRARY_ARTIST_ACTION_IDS].sort());
         expect([...resolveLibrarySurfaceActions('artist', 'tui').actions].sort()).toEqual([...LIBRARY_ARTIST_ACTION_IDS].sort());
+        // B8：bravais 的歌手页自己渲染，声明全部 10 个歌手页动作（不回退 grid）。
+        expect(resolveLibrarySurface('artist', 'bravais')).toMatchObject({ suiteId: 'bravais', isFallback: false });
+        expect([...resolveLibrarySurfaceActions('artist', 'bravais').actions].sort()).toEqual([...LIBRARY_ARTIST_ACTION_IDS].sort());
         // 首页：两套都实现了全部首页动作（网格的焦点类动作在卡片与目录树的按钮上，TUI 的在命令面板与键盘上）。
         expect([...resolveLibrarySurfaceActions('home', 'grid').actions].sort()).toEqual([...LIBRARY_HOME_ACTION_IDS].sort());
         expect([...resolveLibrarySurfaceActions('home', 'tui').actions].sort()).toEqual([...LIBRARY_HOME_ACTION_IDS].sort());
@@ -158,9 +171,11 @@ describe('library suite registry', () => {
         expect(resolveLibrarySurface('artist', 'grid').transitions?.beforeBack).toBeTypeOf('function');
     });
 
-    it('mounts no stage for the grid, the TUI or an unknown id (B1)', () => {
-        // grid 与 TUI 都没有 stage；未知 id 生效的是 grid，同样没有。宿主因此照旧垫背景板、藏首页，也不加载任何 stage chunk。
-        expect(listLibrarySuites().filter(suite => suite.stage).map(suite => suite.id)).toEqual([]);
+    it('mounts a stage only for bravais; grid, the TUI and unknown ids have none (B1, B6)', () => {
+        // 只有 bravais 带 stage；grid 与 TUI 没有，未知 id 生效的是 grid，同样没有。没有 stage 时宿主照旧垫背景板、藏首页。
+        expect(listLibrarySuites().filter(suite => suite.stage).map(suite => suite.id)).toEqual(['bravais']);
+        expect(resolveLibraryStage('bravais')?.suiteId).toBe('bravais');
+        expect(resolveLibraryStage('bravais')?.component).toBe(getLibrarySuite('bravais')?.stage);
         expect(resolveLibraryStage('grid')).toBeNull();
         expect(resolveLibraryStage('tui')).toBeNull();
         expect(resolveLibraryStage('nope')).toBeNull();

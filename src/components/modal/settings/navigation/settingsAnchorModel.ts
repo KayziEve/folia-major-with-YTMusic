@@ -25,6 +25,8 @@ export const SETTINGS_ANCHOR_DEFINITIONS = {
     playbackEntryView: { section: 'general', labelKey: 'options.playbackEntryView' },
     // Rendered only when more than one library suite is available (hasLibrarySuiteChoice).
     librarySuite: { section: 'general', labelKey: 'options.librarySuite', requiresLibrarySuiteChoice: true },
+    // bravais 独有的设置（透光、每块窗数、集合叠页边）：只在生效 suite 是 bravais 时渲染（isBravaisLibraryActive）。
+    bravaisSettings: { section: 'general', labelKey: 'options.bravaisSettings', requiresBravaisSuite: true },
     bottomUiSettings: { section: 'general', labelKey: 'options.bottomUiSettings' },
     pinnedCommands: { section: 'general', labelKey: 'options.pinnedCommands' },
     ponderHints: { section: 'general', labelKey: 'options.ponderHints' },
@@ -73,7 +75,7 @@ export const SETTINGS_ANCHOR_DEFINITIONS = {
     // LabSettingsModal
     labPlayerUi: { section: 'lab', labelKey: 'options.labPlayerUiSection' },
     labWindowAndTools: { section: 'lab', labelKey: 'options.labWindowAndToolsSection' },
-} as const satisfies Record<string, { section: SettingsSubviewId; labelKey: string; electronOnly?: boolean; requiresLibrarySuiteChoice?: boolean }>;
+} as const satisfies Record<string, { section: SettingsSubviewId; labelKey: string; electronOnly?: boolean; requiresLibrarySuiteChoice?: boolean; requiresBravaisSuite?: boolean }>;
 
 export type SettingsAnchorId = keyof typeof SETTINGS_ANCHOR_DEFINITIONS;
 

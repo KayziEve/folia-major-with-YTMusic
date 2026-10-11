@@ -26,6 +26,8 @@ export type LibraryHomeNavidrome = {
     sections: { key: NavidromeHomeSection; label: string; active: boolean }[];
     title: string;
     items: LibraryHomeCard[];
+    /** 五个 section 各自的卡片（与 items 同一份；首页的直达入口要看当前 section 之外的卡片，例如歌单里的随机 / 收藏）。 */
+    cardsBySection: Readonly<Record<NavidromeHomeSection, LibraryHomeCard[]>>;
     isLoading: boolean;
     emptyMessage: string;
     actions: LibraryHomeListAction[];
@@ -70,6 +72,7 @@ export const useLibraryHomeNavidrome = (resource: LibraryNavidromeHomeResource):
         sections,
         title: t(navidromeSectionLabelKey(section)),
         items,
+        cardsBySection,
         isLoading,
         emptyMessage: t(navidromeSectionEmptyKey(section)),
         actions: resolveNavidromeHomeActions(isLoading),

@@ -63,6 +63,8 @@ export type LibraryArtistAlbum = {
     readonly name: string;
     readonly coverUrl?: string;
     readonly publishedAt?: number;
+    /** 曲目数（在线 provider 给了才有，Navidrome 是 songCount，本地按歌数）；未知时没有。 */
+    readonly trackCount?: number;
     readonly providerId?: string;
     readonly [field: string]: unknown;
 };

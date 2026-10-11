@@ -25,7 +25,7 @@ import { assertLibrarySuiteChromeActions } from './suiteChrome';
 /** 默认 suite：任何 suite 没实现的 surface 都由它渲染，所以它必须实现全部 surface。 */
 export const DEFAULT_LIBRARY_SUITE_ID: LibrarySuiteId = 'grid';
 
-/** 没有构建变量覆盖时的初始选择（开发阶段为 bravais，发版前复核）。 */
+/** 没有构建变量覆盖时的初始选择：bravais（下一版起的默认，2026-10-10 用户定）。 */
 const LIBRARY_SUITE_INITIAL_CHOICE_FALLBACK: LibrarySuiteId = 'bravais';
 
 /**

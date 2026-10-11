@@ -20,6 +20,7 @@ vi.mock('@/services/netease', () => ({
         getArtistAlbums: vi.fn(),
         getPersonalizedPlaylists: vi.fn(),
         getLikedSongs: vi.fn(),
+        getUserPlaylists: vi.fn(),
         checkQr: vi.fn(),
         getQrKey: vi.fn(),
         createQr: vi.fn(),
@@ -269,6 +270,30 @@ describe('neteaseProvider', () => {
             code: 'invalid-response',
             message: 'NetEase QR image request failed: code 400: key is required',
         });
+    });
+});
+
+// 网易云 `/user/playlist` 的「我喜欢的音乐」是 `specialType: 5`（数字）；首页特殊集合靠 isLiked 认它。
+describe('neteaseProvider user playlists', () => {
+    beforeEach(() => vi.clearAllMocks());
+
+    it('marks its own specialType 5 playlist as liked and leaves the rest alone', async () => {
+        vi.mocked(neteaseApi.getUserPlaylists).mockResolvedValue({
+            playlist: [
+                { id: 11, name: 'amtx喜欢的音乐', specialType: 5, subscribed: false, creator: { userId: 7, nickname: 'amtx' } },
+                { id: 12, name: '自建歌单', specialType: 0, subscribed: false, creator: { userId: 7, nickname: 'amtx' } },
+                // 收藏来的别人的「喜欢的音乐」也是 5：不能当成自己的（移除会变成取消自己的喜欢）。
+                { id: 13, name: '别人喜欢的音乐', specialType: 5, subscribed: true, creator: { userId: 8, nickname: 'other' } },
+            ],
+        } as any);
+
+        const page = await neteaseProvider.library!.getUserPlaylists!(7, 30, 0);
+
+        expect(neteaseApi.getUserPlaylists).toHaveBeenCalledWith(7, 30, 0);
+        expect(page.items.map(item => [item.id, item.isLiked])).toEqual([[11, true], [12, undefined], [13, undefined]]);
+        // 归一化结果进缓存后回灌（omni.normalizeCachedCollection）仍是「我喜欢的音乐」。
+        expect(neteaseProvider.normalizeCollection!(page.items[0]).isLiked).toBe(true);
+        expect(neteaseProvider.normalizeCollection!(page.items[1]).isLiked).toBeUndefined();
     });
 });
 

@@ -15,6 +15,7 @@ type PlaybackSurface = Pick<
     | 'onAddSongToQueue'
     | 'onAddLocalSongToQueue'
     | 'onAddNavidromeSongsToQueue'
+    | 'onTogglePlayback'
     | 'localSongs'
 >;
 
@@ -41,4 +42,6 @@ export const createLibraryPlaybackPort = (surface: PlaybackSurface): LibraryPlay
     },
     // 选项与返回的条数原样转交：歌手页的「加入热门歌曲」靠它们静默队列提示、报出队列实际收下的数量。
     enqueueAll: (tracks, options) => surface.onAddAllToQueue?.(tracks, options),
+    // fb3：宿主的播放开关原样转交（「留在原处」时网格卡片上正在播放的那首的播放键用它）。
+    togglePlayback: surface.onTogglePlayback,
 });

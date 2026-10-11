@@ -20,6 +20,8 @@ const PAGE_SCOPE_TARGETS = new Set<PonderTargetId>([
     'lattice-page',
     'help-page',
     'settings-page',
+    // bravais 的首页 / 集合 / 歌手页：墙是页面教程，信息条（bravais-seam）作为本页组件挂在它下面。
+    'bravais-wall',
 ]);
 
 /** A rendered page explicitly opts out; missing or unknown scopes still use the view fallback. */

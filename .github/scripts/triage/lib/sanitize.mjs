@@ -57,7 +57,8 @@ export function prepareBodyForLlm(body, { headChars, tailChars, codeBlockMaxLine
 }
 
 // LLM 生成的文字写进评论前的无害化：不留链接、HTML、@提及和 #引用，防止被操纵去通知别人或贴钓鱼链接。
-export function neutralizeLlmText(text, maxChars) {
+// escapeMarkdown 为 true 时把 Markdown 符号转义而不是删掉，`VITE_NETEASE_API_BASE` 这类名字才不会被吃掉下划线。
+export function neutralizeLlmText(text, maxChars, { escapeMarkdown = false } = {}) {
     let out = String(text ?? '')
         .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
         .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
@@ -66,9 +67,10 @@ export function neutralizeLlmText(text, maxChars) {
         .replace(/\bwww\.\S+/gi, '[链接已移除]')
         .replace(/@/g, '@​')
         .replace(/#(?=\d)/g, '#​')
-        .replace(/[`*_~|>]/g, '')
+        .replace(/[`*_~|>]/g, escapeMarkdown ? '\\$&' : '')
         .replace(/\s+/g, ' ')
         .trim();
-    if (out.length > maxChars) out = `${out.slice(0, maxChars - 1)}…`;
-    return out;
+    // 截断时别留下孤立的转义反斜杠，否则会转义掉后面的省略号。
+    if (out.length > maxChars) out = `${out.slice(0, maxChars - 1).replace(/\\$/, '')}…`;
+    return escapeMarkdown ? out.replace(/^(#|[-+]\s|\d+[.)]\s)/, '\\$1') : out;
 }

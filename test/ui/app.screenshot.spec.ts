@@ -79,7 +79,8 @@ test.describe('frontend screenshot coverage', () => {
     await mockNeteaseApi(page, 'guest');
 
     await openApp(page);
-    await page.getByRole('button', { name: /Connect .* Account/ }).first().click();
+    // 连接胶囊默认展开第一个可用平台（网易云），一次点击即发起登录。
+    await page.getByRole('button', { name: 'Log in to 网易云', exact: true }).click();
 
     const loginDialog = page.getByRole('dialog');
     await expect(loginDialog).toBeVisible();

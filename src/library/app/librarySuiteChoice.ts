@@ -36,6 +36,40 @@ const SUITE_OPTIONS: readonly LibrarySuiteOption[] = Object.freeze(
 /** 设置项与命令面板列出的选项：registry 里可用的 suite（默认 suite 在最前）。 */
 export const listLibrarySuiteOptions = (): readonly LibrarySuiteOption[] => SUITE_OPTIONS;
 
+/**
+ * 首启引导第一页只问这两套：网格（经典）与 bravais（无限），顺序固定。TUI 这类开发用 suite 即使在这个构建里
+ * 可用也不出现——引导是给第一次打开的人看的，设置页与命令面板照旧列出全部可用的 suite。
+ */
+export const ONBOARDING_LIBRARY_SUITE_IDS: readonly LibrarySuiteId[] = Object.freeze(['grid', 'bravais']);
+
+/** 从可用的 suite 里挑出引导要问的那几套（按 ONBOARDING_LIBRARY_SUITE_IDS 的顺序）。 */
+export const pickOnboardingLibrarySuiteIds = (available: readonly LibrarySuiteId[]): readonly LibrarySuiteId[] => (
+    ONBOARDING_LIBRARY_SUITE_IDS.filter(id => available.includes(id))
+);
+
+const ONBOARDING_SUITE_IDS = Object.freeze(pickOnboardingLibrarySuiteIds(SUITE_OPTIONS.map(option => option.id)));
+
+/** 首启引导第一页的选项。 */
+export const listOnboardingLibrarySuiteIds = (): readonly LibrarySuiteId[] => ONBOARDING_SUITE_IDS;
+
+/** 两套都可用时首启引导才有「选资料库界面」那一页；否则只剩「播放后进入的视图」一页。 */
+export const hasOnboardingLibrarySuiteChoice = (): boolean => ONBOARDING_SUITE_IDS.length > 1;
+
+/**
+ * 首启提问的「资料库界面」那一页关掉时调用：把此刻实际生效的 suite 记成用户的选择（写入存储）。没点卡片直接确认也算
+ * 选了——之后改初始选择（LIBRARY_SUITE_INITIAL_CHOICE）不会再把这些人带走。生效的就是它，画面不变，不走切换。
+ */
+export const confirmOnboardingLibrarySuite = (): void => {
+    const store = useLibrarySuiteStore.getState();
+    store.setSuite(resolveActiveLibrarySuiteId(store.suite));
+};
+
+/**
+ * 首页这套 suite 是不是一面墙（bravais）：墙与 Lattice 是同一类界面，左下角的正在播放卡片在墙上与在 Lattice 上一样常在，
+ * 不看「在首页显示」开关（那个开关管网格 / TUI 的首页）。
+ */
+export const isWallLibrarySuite = (suiteId: LibrarySuiteId): boolean => suiteId === 'bravais';
+
 /** 此刻实际生效的 suite（非响应式，命令面板用）。 */
 export const getActiveLibrarySuiteId = (): LibrarySuiteId => (
     resolveActiveLibrarySuiteId(useLibrarySuiteStore.getState().suite)

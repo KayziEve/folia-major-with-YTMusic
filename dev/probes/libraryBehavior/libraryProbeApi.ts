@@ -35,7 +35,7 @@ import { openArtistAlbum, openArtistPanel, readArtistFocus, readArtistGridFocus,
 // 把探针的驱动接口挂到 window 上。查询、动作都经由真实的注册点（命令筛选、grid surface），
 // 用的是命令面板同一条通道，所以它测到的就是命令面板能做到的事。
 
-type HarnessBindings = Pick<LibraryProbeApi, 'sandbox' | 'fixtures' | 'ready' | 'open' | 'back' | 'pushArtist' | 'openArtist' | 'refreshLocal'>;
+type HarnessBindings = Pick<LibraryProbeApi, 'sandbox' | 'fixtures' | 'ready' | 'open' | 'back' | 'push' | 'pushArtist' | 'openArtist' | 'refreshLocal'>;
 
 const setSuite = (suite: LibrarySuiteId) => {
     const stack = useCollectionNavigationStore.getState().snapshot?.stack ?? [];

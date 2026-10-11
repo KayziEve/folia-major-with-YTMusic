@@ -2,7 +2,12 @@ import i18n from '../../../src/i18n/config';
 import { useAppViewStore } from '../../../src/stores/useAppViewStore';
 import { useCollectionNavigationStore } from '../../../src/stores/useCollectionNavigationStore';
 import { useSearchNavigationStore } from '../../../src/stores/useSearchNavigationStore';
-import type { HomeViewTab } from '../../../src/types';
+import type { HomeViewTab, SongResult } from '../../../src/types';
+import { setCurrentSong, setPlayerState, setPlayQueue } from '../../../src/stores/usePlaybackStore';
+import { usePlaybackEntryViewStore } from '../../../src/stores/usePlaybackEntryViewStore';
+import { useAudioSettingsStore } from '../../../src/stores/useAudioSettingsStore';
+import { setProbeStageTools } from './probeStageTools';
+import { PlayerState } from '../../../src/types';
 import DesktopGrid3DSurface from '../../../src/library/suites/grid/home/DesktopGrid3DSurface';
 import { Grid3DSlider, type Grid3DSliderItem } from '../../../src/library/suites/grid/home/Grid3DSlider';
 import { GridViewTabs } from '../../../src/library/suites/grid/home/GridViewTabs';
@@ -20,7 +25,8 @@ import { homeCardToDirectoryItem } from '../../../src/library/core/model/directo
 import { DEFAULT_DIRECTORY_SESSION_ID } from '../../../src/library/core/model/directorySession';
 import { useLibrarySuiteStore } from '../../../src/library/core/state/useLibrarySuiteStore';
 import { switchLibrarySuite } from '../../../src/library/app/switchLibrarySuite';
-import { listLibrarySuites, resolveLibrarySurface } from '../../../src/library/registry';
+import { getLibrarySuite, listLibrarySuites, resolveLibrarySurface } from '../../../src/library/registry';
+import { useLibrarySuiteChromeStore } from '../../../src/library/core/state/useLibrarySuiteChromeStore';
 import LibraryTuiDirectory from '../../../src/library/suites/tui/LibraryTuiDirectory';
 import { getLibraryDirectorySession, useLibraryDirectorySessionStore } from '../../../src/library/core/state/useLibraryDirectorySessionStore';
 import { useLibraryDirectorySurfaceStore } from '../../../src/library/core/state/useLibraryDirectorySurfaceStore';
@@ -48,6 +54,12 @@ import {
     firstHostElement,
     propsOf,
 } from './reactFiberProbe';
+import {
+    bravaisDirectoryProps,
+    closeBravaisDirectoryPanel,
+    isBravaisPanelOpen,
+    openBravaisDirectoryPanel,
+} from './bravaisHomeProbe';
 
 // dev/probes/homeBehavior/homeProbeApi.ts
 // `window.__homeProbe` 的实现。页签、当前列表的条目 / section / 动作 / 加载态 / 隐藏作用域 / 批量类型 / 目录树
@@ -72,10 +84,13 @@ import {
 //   isBatchOpen 就是「这个目录有批量」。
 // - 隐藏：toggleHidden 与行尾按钮、命令面板同一个 store 动作；setHiddenView 直接写目录会话的隐藏视图（TUI 的
 //   [全部] / [只看隐藏的] / [完成] 写的就是它）。
+//
+// B9 起首页也可以是 bravais（setSuite('bravais')）：读 BravaisHomeDirectory 的 props，对应关系见 bravaisHomeProbe.ts 的
+// 文件头（墙就是目录；筛选与批量 = 本地的目录树面板；在线页签没有目录过滤）。
 
 const HIDDEN_STORAGE_KEY = 'hidden_grid_playlists';
 
-type HarnessBindings = Pick<HomeProbeApi, 'sandbox' | 'ready' | 'remount' | 'localSongIds' | 'localPlaylists' | 'providers' | 'activeProvider' | 'switchProvider'>;
+type HarnessBindings = Pick<HomeProbeApi, 'sandbox' | 'ready' | 'remount' | 'localSongIds' | 'localPlaylists' | 'providers' | 'activeProvider' | 'switchProvider' | 'signOut' | 'setStage' | 'setLattice'>;
 
 type SliderProps = { items: Grid3DSliderItem[]; onSelect: (item: Grid3DSliderItem, index: number) => void };
 type GridMapProps = {
@@ -115,8 +130,19 @@ type TuiDirectoryProps = {
 
 /** 此刻渲染首页的 suite（选中的 suite 没实现首页时回退网格）。 */
 const homeSuite = () => resolveLibrarySurface('home', useLibrarySuiteStore.getState().suite).suiteId;
+
+/** 一首只有身份的在线歌（playback key `online:<provider>:<id>`），给播放队列与正在播放的那首用。 */
+const probeOnlineSong = (key: string): SongResult => {
+    const [, providerId, mediaId] = key.split(':');
+    return {
+        id: mediaId, name: mediaId, artists: [], album: { id: 0, name: '' }, durationMs: 0,
+        sourceRef: { kind: 'online', providerId, mediaId },
+    } as SongResult;
+};
 const isTuiHome = () => homeSuite() === 'tui';
 const tuiDirectoryProps = () => (isTuiHome() ? propsOf<TuiDirectoryProps>(findPresentComponent(LibraryTuiDirectory)) : null);
+const isBravaisHome = () => homeSuite() === 'bravais';
+const bravaisProps = () => (isBravaisHome() ? bravaisDirectoryProps() : null);
 
 /** 当前的目录（网格：打开着的 GridMap；TUI：列表），以及它的会话 key、条目与批量配置。 */
 type ProbeDirectory = {
@@ -127,6 +153,16 @@ type ProbeDirectory = {
     batchOpen: boolean;
 };
 const currentDirectory = (): ProbeDirectory | null => {
+    if (isBravaisHome()) {
+        const props = bravaisProps();
+        if (!props) return null;
+        return {
+            sessionId: props.directoryKey,
+            items: props.items.map(homeCardToDirectoryItem),
+            batchConfig: props.batchConfig,
+            batchOpen: isBravaisPanelOpen(props),
+        };
+    }
     if (isTuiHome()) {
         const props = tuiDirectoryProps();
         if (!props) return null;
@@ -243,6 +279,28 @@ export const installHomeProbeApi = (bindings: HarnessBindings): (() => void) => 
         suites: () => listLibrarySuites().map(suite => suite.id),
         // 与 DEV 浮层在首页上点到的同一条：switchLibrarySuite（首页没有集合会话要冲刷）。
         setSuite: suiteId => switchLibrarySuite('home', suiteId),
+        chrome: () => {
+            const handle = useLibrarySuiteChromeStore.getState().chrome;
+            if (!handle) return null;
+            const declared = getLibrarySuite(handle.suiteId)?.chromeActions ?? [];
+            return { suiteId: handle.suiteId, available: declared.map(action => action.id).filter(id => handle.isAvailable(id)) };
+        },
+        runChrome: actionId => useLibrarySuiteChromeStore.getState().chrome?.run(actionId) ?? false,
+        setPlayQueue: playbackKeys => setPlayQueue(playbackKeys.map(probeOnlineSong)),
+        setNowPlaying: (playbackKey, playing = true) => {
+            setCurrentSong(playbackKey ? probeOnlineSong(playbackKey) : null);
+            setPlayerState(playbackKey ? (playing ? PlayerState.PLAYING : PlayerState.PAUSED) : PlayerState.IDLE);
+        },
+        setEntryView: view => usePlaybackEntryViewStore.getState().setPlaybackEntryView(view),
+        setStageTools: setProbeStageTools,
+        volume: () => {
+            const { volume, isMuted } = useAudioSettingsStore.getState();
+            return { volume, isMuted };
+        },
+        paletteRequest: () => {
+            const { seq, kind } = useAppViewStore.getState().commandPaletteRequest;
+            return { seq, kind };
+        },
 
         tabs: readTabs,
         tab: () => useSearchNavigationStore.getState().homeViewTab as HomeTabKey,
@@ -266,6 +324,8 @@ export const installHomeProbeApi = (bindings: HarnessBindings): (() => void) => 
             }));
         },
         visibleItems: () => {
+            const bravais = bravaisProps();
+            if (bravais) return filterDirectoryByVisibility(bravais.items, currentHiddenIds(), 'browse').map(item => asId(item.id));
             const tui = tuiDirectoryProps();
             if (tui) return filterDirectoryByVisibility(tui.items, currentHiddenIds(), 'browse').map(item => asId(item.id));
             return (sliderProps()?.items ?? []).map(item => asId(item.id));
@@ -287,7 +347,7 @@ export const installHomeProbeApi = (bindings: HarnessBindings): (() => void) => 
         },
 
         open: id => {
-            const tui = tuiDirectoryProps();
+            const tui = tuiDirectoryProps() ?? bravaisProps();
             if (tui) {
                 const card = filterDirectoryByVisibility(tui.items, currentHiddenIds(), 'browse').find(item => asId(item.id) === id);
                 if (!card) return false;
@@ -305,6 +365,12 @@ export const installHomeProbeApi = (bindings: HarnessBindings): (() => void) => 
         closeCollection: () => useCollectionNavigationStore.getState().clear(),
 
         openMap: () => {
+            if (isBravaisHome()) {
+                const props = bravaisProps();
+                if (!props) return false;
+                openBravaisDirectoryPanel(props);
+                return true;
+            }
             if (isTuiHome()) return Boolean(tuiDirectoryProps());
             const onOpenMap = propsOf<{ onOpenMap?: () => void }>(findPresentComponent(GridViewTabs, surfaceFiber()))?.onOpenMap;
             if (!onOpenMap) return false;
@@ -312,7 +378,9 @@ export const installHomeProbeApi = (bindings: HarnessBindings): (() => void) => 
             return true;
         },
         closeMap: () => {
-            const tui = tuiDirectoryProps();
+            const bravais = bravaisProps();
+            if (bravais) closeBravaisDirectoryPanel(bravais);
+            const tui = tuiDirectoryProps() ?? bravais;
             if (tui) {
                 const store = useLibraryDirectorySessionStore.getState();
                 store.closeDirectory(tui.directoryKey);
@@ -324,9 +392,9 @@ export const installHomeProbeApi = (bindings: HarnessBindings): (() => void) => 
             props.onBack();
             return true;
         },
-        isMapOpen: () => (isTuiHome() ? Boolean(tuiDirectoryProps()) : Boolean(gridMapFiber())),
+        isMapOpen: () => (isBravaisHome() ? Boolean(bravaisProps()) : isTuiHome() ? Boolean(tuiDirectoryProps()) : Boolean(gridMapFiber())),
         mapItems: () => {
-            if (isTuiHome()) {
+            if (isTuiHome() || isBravaisHome()) {
                 const scope = currentBatchScope();
                 if (!scope) return [];
                 const hiddenIds = currentHiddenIds();
@@ -369,6 +437,11 @@ export const installHomeProbeApi = (bindings: HarnessBindings): (() => void) => 
 
         batchAvailable: () => Boolean(listState()?.batchSelectionType),
         openPanel: () => {
+            if (isBravaisHome()) {
+                const props = bravaisProps();
+                if (props) openBravaisDirectoryPanel(props);
+                return Boolean(props);
+            }
             if (isTuiHome()) return Boolean(tuiDirectoryProps());
             if (isPanelOpen()) return true;
             const button = titleButton();
@@ -377,6 +450,11 @@ export const installHomeProbeApi = (bindings: HarnessBindings): (() => void) => 
             return true;
         },
         closePanel: () => {
+            if (isBravaisHome()) {
+                const props = bravaisProps();
+                if (props) closeBravaisDirectoryPanel(props);
+                return Boolean(props);
+            }
             if (isTuiHome()) return Boolean(tuiDirectoryProps());
             if (!isPanelOpen()) return true;
             const button = titleButton();
@@ -448,7 +526,7 @@ export const installHomeProbeApi = (bindings: HarnessBindings): (() => void) => 
         })),
 
         toggleHidden: id => {
-            const tui = tuiDirectoryProps();
+            const tui = tuiDirectoryProps() ?? bravaisProps();
             if (tui) {
                 const card = tui.items.find(candidate => asId(candidate.id) === id);
                 if (!card || !isHideableDirectoryItem(card)) return false;
@@ -463,7 +541,7 @@ export const installHomeProbeApi = (bindings: HarnessBindings): (() => void) => 
         },
         hiddenView: readHiddenView,
         setHiddenView: async view => {
-            const tui = tuiDirectoryProps();
+            const tui = tuiDirectoryProps() ?? bravaisProps();
             if (tui) {
                 if (tui.batchConfig) return false;
                 useLibraryDirectorySessionStore.getState().setVisibilityMode(tui.directoryKey, view);

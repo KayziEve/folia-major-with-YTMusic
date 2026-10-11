@@ -21,7 +21,8 @@ import PonderHost from './components/ponder/PonderHost';
 // Lazy so animejs (~38KB gz) stays out of the bootstrap chunk: this overlay only ever draws when the
 // animation switch is on AND the mode is automix, both off by default, so it is mounted only then.
 const AutomixTransitionAnimation = lazy(() => import('./components/app/overlays/AutomixTransitionAnimation'));
-const Lattice = lazy(() => import('./components/app/lattice/Lattice'));
+const loadLattice = () => import('./components/app/lattice/Lattice');
+const Lattice = lazy(loadLattice);
 import { UserGuideModal } from './components/modal/UserGuideModal';
 import ReleaseNotesDialog from './components/modal/ReleaseNotesDialog';
 import { PlaybackEntryViewPrompt } from './components/modal/playback-entry-view/PlaybackEntryViewPrompt';
@@ -36,6 +37,10 @@ import { createOnlineGridViewCollection, type GridViewCollectionDescriptor } fro
 import { buildAppStyle } from './components/app/presentation/buildAppStyle';
 import { buildDebugSnapshot } from './components/app/presentation/buildDebugSnapshot';
 import { buildHomeSurfacePresentation } from './components/app/presentation/buildHomeSurfacePresentation';
+import { shouldMountPlayerVisualizer } from './components/app/presentation/playerVisualizerMount';
+import { resolveWallHandoffPresentation } from './components/app/presentation/wallHandoffPresentation';
+import { useWallHandoffDirector } from './components/app/presentation/wallHandoffDirector';
+import WallToolsDockHost from './components/wall/WallToolsDock';
 import { buildPlayerViewFlags } from './components/app/presentation/buildPlayerViewFlags';
 import { buildVisualizerTheme } from './components/app/presentation/buildVisualizerTheme';
 import { createCoverUrlResolver } from './components/app/playback/createCoverUrlResolver';
@@ -47,6 +52,7 @@ import { persistPlaybackCache } from './components/app/playback/persistPlaybackC
 import { useAppOverlaysModel } from './components/app/overlays/useAppOverlaysModel';
 import { resolveNextUpTrack } from './components/app/overlays/now-playing-toast/resolveNextUpTrack';
 import { shouldShowNowPlayingToast } from './components/app/overlays/now-playing-toast/nowPlayingToastVisibility';
+import { isWallLibrarySuite, useActiveLibrarySuiteId } from './library/app/librarySuiteChoice';
 import {
     createSearchAlbumCollection,
     createSearchArtistCollection,
@@ -70,6 +76,7 @@ import { useBodianLibrary } from './hooks/useBodianLibrary';
 import { useYtmusicLibrary } from './hooks/useYtmusicLibrary';
 import { useLibraryAccountController } from './library/app/useLibraryAccountController';
 import { createLibraryAccountSwitchCleanupPort } from './library/app/createLibraryAccountPort';
+import { useLibraryStageToolsPort } from './library/app/useLibraryStageToolsPort';
 import { useLibraryAccountProviders } from './library/core/bindings/useLibraryAccount';
 import { resolveActiveProviderSummary } from './library/core/model/accountRules';
 import { useAppPreferences } from './hooks/useAppPreferences';
@@ -134,6 +141,10 @@ import { useAppChromeStore } from './stores/useAppChromeStore';
 import { useAppViewStore } from './stores/useAppViewStore';
 import { selectDisplayCoverUrl, selectDisplayDuration, selectDisplayLyrics, selectDisplayPlayerState, selectDisplaySong, selectIsShowingTail, usePlaybackStore } from './stores/usePlaybackStore';
 import { useLibraryStore } from './stores/useLibraryStore';
+import { selectLibraryOccludesPlayer, selectLibraryPlayerBackdrop, useLibraryPlayerOcclusionStore } from './stores/useLibraryPlayerOcclusionStore';
+import { resolveVisualizerBackdropBlur, visualizerBackdropStyle } from './components/app/presentation/playerVisualizerBackdrop';
+import { useLibraryOcclusionSettled } from './hooks/useLibraryOcclusionSettled';
+import { useWallHandoffStore } from './stores/useWallHandoffStore';
 import { countRender } from './dev/renderCount';
 import { resolveSongLiked } from './utils/resolveSongLiked';
 import StageSessionEmptyState from './components/app/stage/StageSessionEmptyState';
@@ -918,6 +929,8 @@ export default function App() {
         handleChangeOnlineLyricsSource,
         handleMatchOnlineLyrics,
         handleLyricMatchComplete,
+        handleLyricMatchPureMusicMarkChanged,
+        handleToggleCurrentSongPureMusicMark,
         handleNaviLyricMatchComplete,
         handleOnlineLyricMatchComplete,
         handleClearOnlineLyricsState,
@@ -1224,10 +1237,13 @@ export default function App() {
      * whole rule: how the app arrived at the home page does not enter into it, so a cold start that
      * lands there and a walk back from another page behave the same.
      */
+    const activeLibrarySuiteId = useActiveLibrarySuiteId();
     const stageTrackPillOnScreen = shouldShowNowPlayingToast({
         mode: stageTrackPillMode,
         view: currentView,
         showOnHome: stageTrackPillOnHome,
+        // bravais 的墙与 Lattice 同类：卡片在墙上常在，不看「在首页显示」（2026-10-10）。
+        homeIsWall: isWallLibrarySuite(activeLibrarySuiteId),
     });
 
     /**
@@ -1741,6 +1757,7 @@ export default function App() {
         isPersonalFmModeSupported,
         setPersonalFmSelection,
         runAutoMatchBestLyric: handleAutoMatchBestLyricForCurrentSong,
+        toggleCurrentSongPureMusicMark: handleToggleCurrentSongPureMusicMark,
         toggleSongLike: handleLike,
         isSongLiked: resolveSongLiked(displaySong, { isLocalSongLiked, starredNavidromeSongIds, likedSongIds }),
 
@@ -2125,12 +2142,22 @@ export default function App() {
         setStatusMsg({ type: 'error', text: t('search.catalogUnavailable') });
     }, [navigateToCollection, setStatusMsg, t]);
 
+    // 资料库墙右下角工具面板的宿主动作（生成主题、队列洗牌、音量预览）：命令面板的同一套命令，端口身份稳定。
+    const stageTools = useLibraryStageToolsPort({
+        invokeCommandById: commandPalette.invokeCommandById,
+        canInvokeCommandById: commandPalette.canInvokeCommandById,
+        isGeneratingTheme,
+        previewVolume: handlePreviewVolume,
+    });
     const homeModel = useHomeModel({
         account: accountController,
+        stageTools,
         activeProvider,
         playSong,
         navigateToPlayer,
         navigateToLattice,
+        togglePlayback: togglePlay,
+        enterPlaybackView: navigateFromPlayerCapsule,
         refreshOnlineProviderPlaylists: refreshActiveProviderPlaylists,
         user,
         playlists,
@@ -2315,6 +2342,7 @@ export default function App() {
         setShowNaviLyricMatchModal,
         setShowOnlineLyricMatchModal,
         handleLyricMatchComplete,
+        handleLyricMatchPureMusicMarkChanged,
         handleNaviLyricMatchComplete,
         handleOnlineLyricMatchComplete,
         pendingUnavailableReplacement,
@@ -2335,10 +2363,23 @@ export default function App() {
 
     // Optimize background layout cost: completely hide home surface when player is active.
     // Keep the mount state separate from opacity so transparent player mode never reveals Home during delayed unmount.
-    const { shouldKeepHomeMounted, shouldShowHomeSurface } = buildHomeSurfacePresentation({
+    // 翻牌交接（资料库墙 ↔ Lattice，设计稿 §7「进入队列」）：director 在视图切换的同一刻开会话，这里按会话决定首页层 /
+    // Lattice 要不要留着、visualizer 要不要垫着。grid / TUI 没有会话，下面的一切照旧。
+    useWallHandoffDirector();
+    const wallHandoffSession = useWallHandoffStore(state => state.session);
+    const wallHandoff = resolveWallHandoffPresentation(wallHandoffSession);
+    // 首页墙能交接（bravais 的 stage 挂着）时空闲里先把 Lattice 的 chunk 取下来：第一次进 Lattice 也不用等它加载才开翻。
+    const hasHomeWallPeer = useWallHandoffStore(state => state.homePeer !== null);
+    useEffect(() => {
+        if (!hasHomeWallPeer) return undefined;
+        const timer = setTimeout(() => { void loadLattice(); }, 1500);
+        return () => clearTimeout(timer);
+    }, [hasHomeWallPeer]);
+    const { shouldKeepHomeMounted, shouldShowHomeSurface, shouldRevealHomeSurface } = buildHomeSurfacePresentation({
         currentView,
         isSettingsModalOpen,
         isPanelOpen,
+        keepsHomeForHandoff: wallHandoff.keepsHome,
     });
     useEffect(() => {
         if (shouldKeepHomeMounted) {
@@ -2349,6 +2390,21 @@ export default function App() {
             return () => clearTimeout(timer);
         }
     }, [shouldKeepHomeMounted]);
+    // 资料库 stage 完全遮挡播放页时（bravais 实色档，stage 自己报告）也卸载 visualizer：首页淡入结束后才卸载，
+    // 首页一被面板盖住 / 离开就立即重挂；设置弹窗盖着时首页仍显示在遮罩下面，不重挂。App 只认报告，不认识 suite。
+    const libraryOccludesPlayer = useLibraryPlayerOcclusionStore(selectLibraryOccludesPlayer);
+    const hasLibraryOcclusionSettled = useLibraryOcclusionSettled(shouldRevealHomeSurface && libraryOccludesPlayer);
+    const shouldMountVisualizer = shouldMountPlayerVisualizer({
+        currentView,
+        hasLatticeExited,
+        shouldRevealHomeSurface,
+        libraryOccludesPlayer,
+        hasLibraryOcclusionSettled,
+        handoffKeepsVisualizer: wallHandoff.keepsVisualizer,
+    });
+    // 首页墙透出来的 visualizer 加模糊（bravais「墙后的画面」，stage 报告；只在首页墙露着时）。
+    const libraryBackdropBlur = useLibraryPlayerOcclusionStore(state => selectLibraryPlayerBackdrop(state).blur);
+    const blursVisualizerBackdrop = resolveVisualizerBackdropBlur({ shouldRevealHomeSurface, backdropBlur: libraryBackdropBlur });
 
     // The two automix decks are identical and interchangeable. Every handler below ignores the
     // deck that is not currently active, so a track fading out in the background can never drive
@@ -2641,28 +2697,32 @@ export default function App() {
             </>}
         >
 
+            {/* 首页层、Lattice 与两面墙共用的右下角工具按钮（WallToolsDock：交接时按钮节点不重建）。 */}
+            <WallToolsDockHost>
             {/* Home Mount Point */}
             <div
                 className="absolute inset-0 z-10"
+                data-wall-handoff-layer="home"
                 style={{
-                    pointerEvents: shouldShowHomeSurface ? 'auto' : 'none',
-                    visibility: shouldShowHomeSurface ? 'visible' : 'hidden',
-                    transition: shouldShowHomeSurface
+                    pointerEvents: shouldShowHomeSurface && !wallHandoff.active ? 'auto' : 'none',
+                    visibility: shouldRevealHomeSurface ? 'visible' : 'hidden',
+                    transition: shouldRevealHomeSurface
                         ? 'visibility 0s linear 0s'
                         : 'visibility 0s linear 0.25s',
-                    display: isHomeFullyHidden ? 'none' : 'block',
+                    display: isHomeFullyHidden && !wallHandoff.keepsHome ? 'none' : 'block',
                 }}
             >
                 <motion.div
                     className="absolute inset-0"
                     initial={false}
-                    animate={{ opacity: shouldShowHomeSurface ? 1 : 0 }}
-                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    animate={{ opacity: shouldRevealHomeSurface ? 1 : 0 }}
+                    // 交接期间不跑整层淡入淡出：进 Lattice 时首页墙保持完全显示，回来时下面的墙要立刻是实的。
+                    transition={{ duration: wallHandoff.active ? 0 : 0.25, ease: 'easeInOut' }}
                 >
-                    {currentView === 'home' || currentView === 'player' ? (
+                    {currentView === 'home' || currentView === 'player' || wallHandoff.keepsHome ? (
                         <Home
                             model={homeModel}
-                            isHomeFullyHidden={isHomeFullyHidden}
+                            isHomeFullyHidden={isHomeFullyHidden && !wallHandoff.keepsHome}
                             isInteractive={shouldShowHomeSurface}
                         />
                     ) : null}
@@ -2673,15 +2733,25 @@ export default function App() {
                 initial={false}
                 onExitComplete={() => setHasLatticeExited(useAppViewStore.getState().view !== 'lattice')}
             >
-                {currentView === 'lattice' && (
+                {(currentView === 'lattice' || wallHandoff.keepsLattice) && (
                     <motion.div
                         key="lattice"
-                        className="absolute inset-0 z-10 pointer-events-auto"
-                        initial={false}
+                        className={`absolute inset-0 z-10 ${wallHandoff.active ? 'pointer-events-none' : 'pointer-events-auto'}`}
+                        data-wall-handoff-layer="lattice"
+                        initial={wallHandoff.latticeOpacity && wallHandoff.latticeOpacity.initial !== false
+                            ? { opacity: wallHandoff.latticeOpacity.initial }
+                            : false}
+                        animate={{ opacity: wallHandoff.latticeOpacity?.animate ?? 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: reduceLatticeMotion ? 0 : 0.62, ease: 'easeIn' }}
+                        // 交接期间：淡入淡出交叉用它自己的时长；翻牌交接时 Lattice 在翻完那一刻卸载，不再淡出。
+                        transition={{
+                            duration: wallHandoff.latticeOpacity
+                                ? wallHandoff.fadeSeconds
+                                : wallHandoff.active || reduceLatticeMotion ? 0 : 0.62,
+                            ease: wallHandoff.latticeOpacity ? 'easeInOut' : 'easeIn',
+                        }}
                     >
-                        <Suspense fallback={<div className="absolute inset-0 bg-[#070707]" />}>
+                        <Suspense fallback={wallHandoff.active ? null : <div className="absolute inset-0 bg-[#070707]" />}>
                             <Lattice
                                 controls={{ playback: commandPaletteContext.playback, loopMode: effectiveLoopMode,
                                     invokeCommandById: commandPalette.invokeCommandById, canInvokeCommandById: commandPalette.canInvokeCommandById,
@@ -2708,6 +2778,7 @@ export default function App() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            </WallToolsDockHost>
 
             {/* --- VISUALIZER (Background Layer & Main Click Target) --- */}
             {/* 指针隐藏跟着控制栏的空闲时钟走，不另起一套计时：控件收起时页面上已经没有可点的东西，
@@ -2716,10 +2787,12 @@ export default function App() {
             <div
                 className={`absolute inset-0 z-0${shouldHidePlayerCursor ? ' cursor-auto-hidden' : ''}`}
                 data-testid="player-visual-surface"
+                data-library-backdrop-blur={blursVisualizerBackdrop || undefined}
+                style={visualizerBackdropStyle(blursVisualizerBackdrop)}
                 onClick={handleContainerClick}
             >
                 <PlayerBottomBarLayoutContext.Provider value={currentView === 'player'}>
-                    {currentView !== 'lattice' && hasLatticeExited && <VisualizerRenderer {...visualizerRendererModel} />}
+                    {shouldMountVisualizer && <VisualizerRenderer {...visualizerRendererModel} />}
                 </PlayerBottomBarLayoutContext.Provider>
             </div>
 

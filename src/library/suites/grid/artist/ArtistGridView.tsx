@@ -24,6 +24,7 @@ import {
 } from '../../../core/model/artistModel';
 import { artistAlbumEntryKey, artistSongEntryKey } from '../../../core/model/artistSurface';
 import { PolaroidCard } from '../shared/PolaroidCard';
+import { useGridStayPlayback } from '../shared/useGridStayPlayback';
 import { HEX_CARD_CENTER_SCALE } from '../shared/hexCardTransform';
 import { squareGridCardBox } from '../shared/gridCardLayout';
 import {
@@ -347,12 +348,18 @@ const ArtistGridView: React.FC<ArtistGridViewProps> = ({
 
     // 歌手数据：宿主的歌手资源。专辑的后台分页在拖拽中先暂存，松手后提交（与集合网格同一道门）。
     const { snapshot, flushHeld } = useArtistResourceState(resource, { holdBackground: () => isDraggingRef.current });
+    // fb3：「留在原处」时热门歌曲卡片上正在播放的那首切换暂停 / 继续（与集合网格同一个规则，见 useGridStayPlayback）。
+    const stayPlayback = useGridStayPlayback(playback.playTrack, playback);
+    const stayPort = useMemo<LibraryPlaybackPort>(
+        () => ({ ...playback, playTrack: stayPlayback.selectTrack }),
+        [playback, stayPlayback.selectTrack],
+    );
     // 筛选词、专辑筛选、能力与动作：与 TUI 歌手页同一份 core 绑定。
     const artistView = useArtistView({
         collection,
         resource,
         snapshot,
-        playback,
+        playback: stayPort,
         declaredActions,
         onEditEntity,
         onOpenAlbum: onSelectAlbum,
@@ -1168,6 +1175,7 @@ const ArtistGridView: React.FC<ArtistGridViewProps> = ({
                                 artistActions.enqueueSong(item.rawTrack);
                             }
                         }}
+                        playbackMark={isSongCard ? stayPlayback.markFor(item.rawTrack) : null}
                     />
                     </motion.div>
                 </div>
@@ -1190,6 +1198,7 @@ const ArtistGridView: React.FC<ArtistGridViewProps> = ({
         focusedIndex,
         artistInfo,
         artistActions,
+        stayPlayback.markFor,
         canPlaySong,
         canEnqueueSong,
         canOpenAlbum,

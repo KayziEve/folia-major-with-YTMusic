@@ -8,6 +8,7 @@
 
 - React shell / subtitle：`VisualizerTempera.tsx`；tuning 与 registry entry：`tuning.ts`、`entry.tsx`
 - Pixi runtime（scene cache ±1、绝对时间驱动、无外部纹理）：`createTemperaPixiRuntime.ts`
+  - runtime 只管生命周期、段落场景缓存、换歌交接和每帧调度；shot 逐帧姿态 `temperaShotFrame.ts`，段落转场选择 / 当前 shot / 是否重建场景 `temperaSceneFrame.ts`，片尾海报 `temperaCreditsLayer.ts`，角标与擦除块 `temperaOverlay.ts`，用户图片纹理池 `temperaImageTextures.ts`
 - 段落 / shot / slice 编译：`temperaProgram.ts`，类型与 `TEMPERA_SHOT_KINDS` 在 `types.ts`
 - 排版区域 / 入场向量 / 镜头位移 / mood（纯数据，无 pixi）：`temperaShotProfiles.ts`
 - 构图绘制：`compositions/*` 按族分文件，`temperaCompositions.ts` 注册聚合

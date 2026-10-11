@@ -1,16 +1,17 @@
 // .github/scripts/triage/io/run-issue.mjs
-// 单条 issue 的完整 triage 流程：拉取评论与时间线 → 提取事实 → 熔断检查 → LLM 分类与重复确认 → 决策。
+// 单条 issue 的完整 triage 流程：拉取评论与时间线 → 提取事实 → 熔断检查 → LLM 分类与重复确认 / 扫码登录诊断 → 决策。
 // 只读；写入由调用方根据模式决定是否执行返回的 Plan。overrides 供本地回放注入「当时」的数据。
 
 import { createHash } from 'node:crypto';
 import { isMaintainerAssociation } from '../lib/config.mjs';
 import { countRecent, evaluateBreaker } from '../lib/breaker.mjs';
 import { findBotComment } from '../lib/comments.mjs';
-import { decideIssue } from '../lib/decide-issue.mjs';
+import { decideIssue, qrAggregateFor } from '../lib/decide-issue.mjs';
+import { extractQrReport, matchPlaybook, mergeDiagnosis, reportForLlm, stripQrReports } from '../lib/login-diagnosis.mjs';
 import { isBotLogin, normalizeComment, normalizeIssue, summarizeTimeline } from '../lib/model.mjs';
 import { extractFacts } from '../lib/parse-issue.mjs';
 import { prepareBodyForLlm, truncateHeadTail } from '../lib/sanitize.mjs';
-import { validateClassification, validateDuplicateConfirm } from '../lib/schema.mjs';
+import { validateClassification, validateDiagnosis, validateDuplicateConfirm } from '../lib/schema.mjs';
 import { LlmInsufficientBalance } from './deepseek.mjs';
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -59,6 +60,25 @@ async function confirmDuplicate({ gh, llmClient, prompts, config, issue, targetN
     }
 }
 
+// 让 LLM 读诊断报告，从已知原因表里挑原因并给出分析。返回 { status, value?, errors? }，余额不足照常抛出。
+async function diagnoseLogin({ llmClient, prompts, playbook, provider, report, description }) {
+    const payload = {
+        provider,
+        report: reportForLlm(report, playbook.reportChars),
+        description: prepareBodyForLlm(description, { headChars: playbook.descriptionChars, tailChars: 0, codeBlockMaxLines: 10 }),
+    };
+    try {
+        const verdict = validateDiagnosis(await llmClient.completeJson([
+            { role: 'system', content: prompts.loginDiagnose },
+            { role: 'user', content: JSON.stringify(payload) },
+        ]), playbook, provider);
+        return verdict.ok ? { status: 'ok', value: verdict.value } : { status: 'invalid', errors: verdict.errors };
+    } catch (error) {
+        if (error instanceof LlmInsufficientBalance) throw error;
+        return { status: 'error', errors: [error.message] };
+    }
+}
+
 // 主入口。返回 { plan, breaker, balanceExhausted, llmUsage }。
 export async function runIssueTriage({ gh, llmClient, config, prompts, templateLines, mode, issueRaw, trigger, now = Date.now(), overrides = {} }) {
     const issue = normalizeIssue(issueRaw);
@@ -71,14 +91,16 @@ export async function runIssueTriage({ gh, llmClient, config, prompts, templateL
         maintainerCommented: comments.some(comment => !isBotLogin(comment.author) && comment.author !== issue.author && isMaintainerAssociation(config, comment.authorAssociation)),
     };
     const previous = findBotComment(comments, botLogin, 'triage')?.state ?? null;
-    const extraText = comments.filter(comment => comment.author === issue.author).map(comment => comment.body).join('\n');
+    const authorComments = comments.filter(comment => comment.author === issue.author).map(comment => comment.body);
+    const extraText = authorComments.join('\n');
     const facts = extractFacts({ title: issue.title, body: issue.body, labels: issue.labels, extraText }, { templateLines, config });
     const bodyHash = createHash('sha256').update(issue.body).digest('hex').slice(0, 16);
     const manualRuns = [...(previous?.manualRuns ?? []).filter(at => now - Date.parse(at) < DAY_MS), ...(trigger === 'manual' ? [new Date(now).toISOString()] : [])];
     const needsTldr = facts.proseLength >= config.llm.tldrMinChars;
 
     const hasModuleLabel = issue.labels.some(name => name.startsWith('module: '));
-    let wantLlm = !facts.qr && !issue.labels.includes('announcement') && !(isMaintainerAssociation(config, issue.authorAssociation) && hasModuleLabel);
+    const isMaintainer = isMaintainerAssociation(config, issue.authorAssociation);
+    let wantLlm = !facts.qr && !issue.labels.includes('announcement') && !(isMaintainer && hasModuleLabel);
     if (trigger === 'author-comment') wantLlm = false;
     if (trigger === 'edited') wantLlm = wantLlm && needsTldr && previous?.bodyHash !== bodyHash;
 
@@ -87,12 +109,19 @@ export async function runIssueTriage({ gh, llmClient, config, prompts, templateL
     let duplicate = null;
     let balanceExhausted = false;
     let candidateNumbers = [];
+    // 分类和登录诊断共用一次熔断检查。
+    let breakerChecked = false;
+    const ensureBreaker = async () => {
+        if (!breakerChecked && !overrides.skipBreaker) {
+            breaker = await checkBreaker(gh, issue, config, now, { trigger, manualRunsLastDay: countRecent(previous?.manualRuns ?? [], now) });
+        }
+        breakerChecked = true;
+        return breaker;
+    };
 
     if (wantLlm && !llmClient) llm = { status: 'unavailable' };
     if (wantLlm && llmClient) {
-        if (!overrides.skipBreaker) {
-            breaker = await checkBreaker(gh, issue, config, now, { trigger, manualRunsLastDay: countRecent(previous?.manualRuns ?? [], now) });
-        }
+        await ensureBreaker();
         if (breaker?.tripped) {
             llm = { status: 'breaker' };
         } else {
@@ -128,6 +157,35 @@ export async function runIssueTriage({ gh, llmClient, config, prompts, templateL
         }
     }
 
+    // ---- 扫码登录诊断 ----
+    // 规则匹配每次都跑；LLM 只在报告是新的（或维护者手动重跑）时调用，报告没变就沿用上一次的结论。
+    // 会被并入汇总 issue 的旧版本报告信息太少，不值得一次调用。
+    let diagnosis = null;
+    let diagnosisLlm = null;
+    const report = facts.qr && !issue.labels.includes('announcement') && !isMaintainer ? extractQrReport([issue.body, ...authorComments]) : null;
+    if (report) {
+        const playbook = config.loginPlaybook;
+        const provider = facts.qr.provider;
+        const reportHash = createHash('sha256').update(report).digest('hex').slice(0, 16);
+        const previousDiagnosis = previous?.diagnosis ?? null;
+        const fresh = previousDiagnosis?.reportHash !== reportHash || previousDiagnosis.source !== 'llm' || trigger === 'manual';
+        if (fresh && !qrAggregateFor(facts, config, issue.number) && llmClient && !balanceExhausted) {
+            if ((await ensureBreaker())?.tripped) {
+                diagnosisLlm = { status: 'breaker' };
+            } else {
+                const description = stripQrReports([issue.body, ...authorComments].join('\n'));
+                try {
+                    diagnosisLlm = await diagnoseLogin({ llmClient, prompts, playbook, provider, report, description });
+                } catch (error) {
+                    if (!(error instanceof LlmInsufficientBalance)) throw error;
+                    balanceExhausted = true;
+                    diagnosisLlm = { status: 'error', errors: [error.message] };
+                }
+            }
+        }
+        diagnosis = mergeDiagnosis({ reportHash, ruleCauses: matchPlaybook(report, provider, playbook), llm: diagnosisLlm, previous: previousDiagnosis, playbook });
+    }
+
     let aggregateTarget = null;
     const aggregate = facts.qr && config.aggregates.find(item => item.provider === facts.qr.provider);
     if (aggregate) {
@@ -137,7 +195,7 @@ export async function runIssueTriage({ gh, llmClient, config, prompts, templateL
 
     const plan = decideIssue({
         issue, facts, config, mode, trigger, now, llm, breaker, duplicate, candidateNumbers, previous, history,
-        aggregateTarget, bodyHash, manualRuns, closesSoFar: overrides.closesSoFar ?? 0,
+        aggregateTarget, bodyHash, manualRuns, closesSoFar: overrides.closesSoFar ?? 0, diagnosis, diagnosisLlm,
     });
-    return { plan, breaker, balanceExhausted, llmUsage: llmClient?.usage ?? null, facts, llm };
+    return { plan, breaker, balanceExhausted, llmUsage: llmClient?.usage ?? null, facts, llm, diagnosis, diagnosisLlm };
 }

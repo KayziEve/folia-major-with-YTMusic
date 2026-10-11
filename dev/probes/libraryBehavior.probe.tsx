@@ -8,6 +8,7 @@ import {
     onProbePopCollectionTo,
     useLibraryProbeHarness,
 } from './libraryBehavior/useLibraryProbeHarness';
+import { usePaletteTypingStandIn } from './paletteTypingStandIn';
 // dev/probes/libraryBehavior.probe.tsx
 
 /**
@@ -22,6 +23,8 @@ import {
  */
 const LibraryBehaviorProbe: React.FC = () => {
     const harness = useLibraryProbeHarness();
+    // 墙上打字交给 bravais 缝里的过滤输入位（命令面板那一支的替身，见 paletteTypingStandIn）。
+    usePaletteTypingStandIn();
 
     return (
         <div className="fixed inset-0" style={{ backgroundColor: 'var(--bg-color)', color: 'var(--text-primary)' }}>

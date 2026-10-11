@@ -15,6 +15,7 @@ import {
     type GridItem,
     type PolaroidCardMode,
 } from './polaroidCardParts';
+import type { GridPlaybackMark } from './useGridStayPlayback';
 
 // src/library/suites/grid/shared/PolaroidCard.tsx
 // The card the folia hex grids render. Two layouts share one component: the polaroid frame (square
@@ -44,6 +45,8 @@ export interface PolaroidCardProps {
     isFocused?: boolean;
     /** Artwork fills the whole card and the copy moves onto a scrim over it. */
     fullBleedCover?: boolean;
+    /** fb3: under "stay here", the playing song's card shows pause / resume instead of play. */
+    playbackMark?: GridPlaybackMark | null;
 }
 
 /**
@@ -73,6 +76,7 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
         openWhenFocusedOnCardClick = false,
         isFocused = false,
         fullBleedCover = false,
+        playbackMark = null,
     }) => {
         const isUnavailable = mode === 'tracks' && item.rawTrack ? isSongUnavailable(item.rawTrack) : false;
         const unavailableTagText = (mode === 'tracks' && item.rawTrack)
@@ -234,6 +238,7 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
                                 isUnavailable={isUnavailable}
                                 onSelect={onSelect}
                                 onAddQueue={onAddQueue}
+                                playbackMark={playbackMark}
                                 t={t}
                             />
                         </div>
@@ -321,6 +326,7 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
                             isUnavailable={isUnavailable}
                             onSelect={onSelect}
                             onAddQueue={onAddQueue}
+                            playbackMark={playbackMark}
                             t={t}
                         />
                     </div>
@@ -344,6 +350,7 @@ export const PolaroidCard = React.memo<PolaroidCardProps>(
             prev.fullBleedCover === next.fullBleedCover &&
             prev.openWhenFocusedOnCardClick === next.openWhenFocusedOnCardClick &&
             Boolean(prev.onEditLocalMetadata) === Boolean(next.onEditLocalMetadata) &&
+            prev.playbackMark === next.playbackMark &&
             prev.isFocused === next.isFocused
         );
     }

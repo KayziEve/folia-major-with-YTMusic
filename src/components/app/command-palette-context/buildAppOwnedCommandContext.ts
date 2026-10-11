@@ -9,6 +9,8 @@ import { usePersonalFmModeStore } from '../../../stores/usePersonalFmModeStore';
 import { useDesktopSettingsStore } from '../../../stores/useDesktopSettingsStore';
 import { openAddToPlaylist, useAddToPlaylistStore } from '../../../stores/useAddToPlaylistStore';
 import { useInteractionSettingsStore } from '../../../stores/useInteractionSettingsStore';
+import { usePlaybackStore } from '../../../stores/usePlaybackStore';
+import { isLocalPlaybackSong } from '../../../utils/appPlaybackGuards';
 
 // src/components/app/command-palette-context/buildAppOwnedCommandContext.ts
 // The four namespaces whose state genuinely still lives in App.tsx: shared, playback, navigation
@@ -28,7 +30,7 @@ export type PlaybackCommandContextDeps = Pick<
     | 'previewVolume' | 'togglePlay' | 'toggleLoop' | 'next' | 'prev' | 'queue'
     | 'shuffleQueue' | 'clearQueue' | 'applyQueueBatchOperation' | 'removeQueueSong'
     | 'moveQueueSongToNext' | 'moveQueueSongToEnd' | 'setReplayGainMode' | 'isFmMode'
-    | 'isPersonalFmModeSupported' | 'setPersonalFmSelection' | 'runAutoMatchBestLyric'
+    | 'isPersonalFmModeSupported' | 'setPersonalFmSelection' | 'runAutoMatchBestLyric' | 'toggleCurrentSongPureMusicMark'
     | 'toggleSongLike' | 'isSongLiked'
 > & {
     playSong: (song: SongResult, queue?: SongResult[], isFmCall?: boolean, options?: PlaybackNavigationOptions) => void | Promise<void>;
@@ -71,6 +73,7 @@ export const buildPlaybackCommandContext = (
         toggleMute: audio.handleToggleMute,
         openAddToPlaylist,
         canAddCurrentSongToPlaylist: useAddToPlaylistStore.getState().availability.canAdd,
+        canToggleCurrentSongPureMusicMark: isLocalPlaybackSong(usePlaybackStore.getState().currentSong),
         personalFmSelection: usePersonalFmModeStore.getState().selection,
         openAudioEqualizer: audio.openAudioEqualizer,
         applyAudioSoundPreset: audio.handleApplyAudioSoundPreset,

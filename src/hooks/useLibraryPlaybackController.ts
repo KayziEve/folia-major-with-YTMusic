@@ -47,6 +47,7 @@ import { loadOnlineLyricsState, resolveOnlineLyrics, saveOnlineLyricsState, getO
 import { hasLocalSongCover } from '../utils/localSongCover';
 import { getLocalCoverAssetUrl } from '../services/localCoverAssetUrl';
 import { applyMatchedMetadata } from '../services/localLibraryCatalogService';
+import { setLocalSongPureMusicMark } from '../services/localSongMatchSelectionService';
 import { buildLocalSongLyricMatchContext, shouldRefreshLocalSongLyricsFromMetadata, shouldRunLocalSongAutomaticMatch } from '../utils/lyrics/localSongMatchContext';
 import { getLocalLibraryCatalogSnapshot } from '../services/localLibraryEntityRepository';
 import { setStatusMessage as setStatusMsg } from '../stores/useStatusMessageStore';
@@ -215,9 +216,25 @@ export function useLibraryPlaybackController({
             const localSong = songsById.get(snapshot.localRef.songId);
             return localSong ? buildLocalQueue([localSong], undefined, catalog)[0] || null : null;
         };
+        const playingBefore = usePlaybackStore.getState().currentSong;
         setCurrentSong(previous => previous ? rebuild(previous) : null);
         setPlayQueue(previous => previous.map(rebuild).filter((song): song is SongResult => Boolean(song)));
-    }, [loadLocalPlaylists, setCurrentSong, setPlayQueue]);
+
+        // 正在播放的这首被标成 / 取消纯音乐（窗口、资料库或命令面板）时，就地换歌词，不重新播放。
+        if (!isLocalPlaybackSong(playingBefore)) return;
+        const record = songsById.get(playingBefore.localRef.songId);
+        const rebuilt = rebuild(playingBefore);
+        if (!record || !rebuilt || Boolean(rebuilt.isPureMusic) === Boolean(playingBefore.isPureMusic)) return;
+        const resolvedLyrics = await resolveLocalSongLyrics(record, useLyricSettingsStore.getState().localLyricsPriority);
+        const shown = usePlaybackStore.getState();
+        if (!isSamePlaybackSong(shown.currentSong, playingBefore)) return;
+        // 屏幕上已经是这份来源与有无歌词（例如快照标志过期造成的「翻转」），就不换，免得清掉当前行。
+        if (resolvedLyrics.source === shown.activeLocalLyricsSource
+            && Boolean(resolvedLyrics.lyrics?.lines.length) === Boolean(shown.lyrics?.lines.length)) return;
+        setLyrics(resolvedLyrics.lyrics);
+        setActiveLocalLyricsSource(resolvedLyrics.source);
+        setCurrentLineIndex(-1);
+    }, [loadLocalPlaylists, setCurrentSong, setLyrics, setPlayQueue]);
 
     const getFavoriteLocalPlaylist = useMemo(
         () => localPlaylists.find(playlist => playlist.isFavorite) ?? null,
@@ -371,7 +388,8 @@ export function useLibraryPlaybackController({
         );
         const needsCoverMatch = !hasLocalSongCover(localSong) && !localSong.onlineMetadata?.coverUrl;
 
-        if ((needsLyricsMatch || needsCoverMatch) && shouldRunLocalSongAutomaticMatch(localSong)) {
+        // 标记为纯音乐的歌 matchLyrics 整个不做（封面也是），这里就别提示「正在匹配歌词和封面」。
+        if (!localSong.markedPureMusic && (needsLyricsMatch || needsCoverMatch) && shouldRunLocalSongAutomaticMatch(localSong)) {
             setStatusMsg({ type: 'info', text: t('status.matchingLyricsAndCover') || '' });
             try {
                 const { matchLyrics } = await import('../services/localMusicService');
@@ -491,7 +509,7 @@ export function useLibraryPlaybackController({
                 || shouldRefreshLocalSongLyricsFromMetadata(localSong))
         );
         const needsCoverMatch = !hasLocalSongCover(localSong) && !localSong.onlineMetadata?.coverUrl;
-        if ((needsLyricsMatch || needsCoverMatch) && shouldRunLocalSongAutomaticMatch(localSong)) {
+        if (!localSong.markedPureMusic && (needsLyricsMatch || needsCoverMatch) && shouldRunLocalSongAutomaticMatch(localSong)) {
             try {
                 const { matchLyrics } = await import('../services/localMusicService');
                 await matchLyrics(localSong);
@@ -942,7 +960,9 @@ export function useLibraryPlaybackController({
             setCurrentLineIndex(-1);
             setCurrentSong(prev => {
                 if (!prev || !isSamePlaybackSong(prev, currentSong)) return prev;
-                return { ...prev };
+                // 显式来源下 isPureMusic 只在选 online 时取在线判定（与 buildUnifiedLocalSong 一致），
+                // 否则之后一次无关的 onRefreshLocalSongs 会把它当成纯音乐标记的切换。
+                return { ...prev, isPureMusic: source === 'online' ? Boolean(updatedLocalSong.matchedIsPureMusic) : false };
             });
             await loadLocalSongs();
             setStatusMsg({ type: 'success', text: t('status.lyricsSourceSwitched')});
@@ -984,6 +1004,31 @@ export function useLibraryPlaybackController({
             setStatusMsg({ type: 'success', text: t('status.matchSuccessful') || 'Match successful' });
         }
     }, [currentSong, loadLocalSongs, localSongs, onPlayLocalSong, playQueue, setStatusMsg]);
+
+    // 播放页的匹配窗口里切换了纯音乐标记：关窗、刷新记录与当前歌词（onRefreshLocalSongs 就地换），不重新播放。
+    const handleLyricMatchPureMusicMarkChanged = useCallback(async (marked: boolean) => {
+        setShowLyricMatchModal(false);
+        await onRefreshLocalSongs();
+        setStatusMsg({ type: 'success', text: t(marked ? 'status.markedPureMusic' : 'status.unmarkedPureMusic') });
+    }, [onRefreshLocalSongs, setStatusMsg]);
+
+    // 命令面板：切换当前本地歌曲的纯音乐标记。
+    const handleToggleCurrentSongPureMusicMark = useCallback(async (): Promise<boolean> => {
+        if (!isLocalPlaybackSong(currentSong)) return false;
+        const localData = await resolveLatestLocalSongRecord(currentSong);
+        if (!localData) return false;
+        const marked = !localData.markedPureMusic;
+        try {
+            await setLocalSongPureMusicMark(localData.id, marked);
+            await onRefreshLocalSongs();
+            setStatusMsg({ type: 'success', text: t(marked ? 'status.markedPureMusic' : 'status.unmarkedPureMusic') });
+            return true;
+        } catch (error) {
+            console.error('Failed to toggle the instrumental mark', error);
+            setStatusMsg({ type: 'error', text: t('localMusic.pureMusicMarkFailed') });
+            return false;
+        }
+    }, [currentSong, onRefreshLocalSongs, resolveLatestLocalSongRecord, setStatusMsg]);
 
     const handleNaviLyricMatchComplete = useCallback(async () => {
         setShowNaviLyricMatchModal(false);
@@ -1171,7 +1216,8 @@ export function useLibraryPlaybackController({
 
         try {
             if (isLocalPlaybackSong(currentSong)) {
-                const localData = resolveLocalSongRecord(currentSong);
+                // 读库里的最新记录：下面整条写回，不能带着 localSongs 里过期的字段（例如刚打的纯音乐标记）。
+                const localData = await resolveLatestLocalSongRecord(currentSong);
                 if (!localData) return false;
                 const catalog = await getLocalLibraryCatalogSnapshot();
                 const resolvedMetadata = resolveLocalSongMetadata(localData.id, catalog);
@@ -1201,17 +1247,21 @@ export function useLibraryPlaybackController({
                     matchedLyricsSource: bestMatch.source,
                     matchedLyricsProviderPlatform: bestMatch.matchedLyricsProviderPlatform,
                     matchedIsPureMusic: false,
+                    // 用户主动要了最佳歌词，纯音乐标记随之取消。
+                    markedPureMusic: undefined,
                     lyricsSource: 'online',
                 };
                 await applyMatchedMetadata(localData.id, {}, {
                     lyricsOnly: true,
                     songPatch: updatedLocalSong,
                 });
-                const updatedSong = { ...currentSong };
+                // 快照的 isPureMusic 跟记录走（标记被清掉了），localSongs 也刷新，匹配窗口才不会还显示已标记。
+                const updatedSong = { ...currentSong, isPureMusic: false };
                 setCurrentSong(prev => isSamePlaybackSong(prev, currentSong) ? updatedSong : prev);
                 setLyrics(bestMatch.lyrics);
                 setActiveLocalLyricsSource('online');
                 setCurrentLineIndex(-1);
+                await loadLocalSongs();
                 await persistLastPlaybackCache(updatedSong, playQueue);
                 setStatusMsg({ type: 'success', text: t('status.bestLyricsMatched') || '' });
                 return true;
@@ -1324,8 +1374,10 @@ export function useLibraryPlaybackController({
         }
     }, [
         currentSong,
+        loadLocalSongs,
         persistLastPlaybackCache,
         playQueue,
+        resolveLatestLocalSongRecord,
         resolveLocalSongRecord,
         setCurrentLineIndex,
         setCurrentSong,
@@ -1473,6 +1525,8 @@ export function useLibraryPlaybackController({
         handleChangeOnlineLyricsSource,
         handleMatchOnlineLyrics,
         handleLyricMatchComplete,
+        handleLyricMatchPureMusicMarkChanged,
+        handleToggleCurrentSongPureMusicMark,
         handleNaviLyricMatchComplete,
         handleOnlineLyricMatchComplete,
         handleClearOnlineLyricsState,

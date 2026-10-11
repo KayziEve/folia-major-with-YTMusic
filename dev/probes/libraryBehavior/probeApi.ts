@@ -1,5 +1,6 @@
 import type { GridSurfaceActionId, GridSurfaceState } from '../../../src/types/gridCommandSurface';
 import type { LibraryDeclaredActions, LibrarySuiteId, LibrarySurfaceId } from '../../../src/library/core/contracts/suite';
+import type { CollectionNavigationOrigin } from '../../../src/library/core/contracts/collection';
 import type { LibraryArtistSurfaceActionId, LibraryArtistSurfaceState } from '../../../src/library/core/contracts/artist';
 import type { ArtistFixtureId, OnlineArtistFixtureId, OnlineFixtureId, ProbeFixtureId } from './fixtureRules';
 import type { ProbeFault } from './fakeProviders';
@@ -51,8 +52,11 @@ export type LibraryProbeApi = {
     /** 沙盒模式才写 IndexedDB / Navidrome 配置；测试浏览器里自动开启。 */
     sandbox: boolean;
     fixtures: () => ProbeFixtureId[];
-    /** 等价于在首页点开这个集合。 */
-    open: (fixtureId: ProbeFixtureId) => void;
+    /**
+     * 等价于在首页点开这个集合。B11：origin 给 search / player 时等价于从搜索页 / 播放页打开（根层的来源，
+     * bravais 整墙入场）；缺省是首页。
+     */
+    open: (fixtureId: ProbeFixtureId, origin?: CollectionNavigationOrigin) => void;
     /** 等价于浏览器后退：先发「将要弹栈」的通知（宿主让 suite 跑 beforeBack），再弹栈；不清会话与布局记录。 */
     back: () => void;
     /** 浏览会话里这个键的筛选词与焦点（没有会话时为 null）。 */
@@ -77,6 +81,11 @@ export type LibraryProbeApi = {
     resolveSurface: (surface: LibrarySurfaceId) => { suiteId: LibrarySuiteId; isFallback: boolean; declaredActions: LibraryDeclaredActions };
     /** 从当前集合压入一个歌手页（本地 fixture 的第一个歌手，需要沙盒）；返回是否压入。 */
     pushArtist: () => boolean;
+    /**
+     * 从当前集合压入一个 fixture 集合（与宿主收到 onPushCollection 之后同一条路：N1 的规则，正好是上一层时折成一次返回）；
+     * 没有打开的集合、fixture 不可用时返回 false。用来在两个集合页之间构造紧邻往返（曲目链接只通向专辑 / 歌手）。
+     */
+    push: (fixtureId: ProbeFixtureId) => boolean;
     /** 按住这个在线集合的后台分页应答（页面按请求那一刻的上游数据生成），releasePages 时送达。 */
     holdPages: (fixtureId: OnlineFixtureId) => void;
     releasePages: (fixtureId: OnlineFixtureId) => void;

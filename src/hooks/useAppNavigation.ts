@@ -18,12 +18,13 @@ import {
     APP_HISTORY_SESSION,
     createNavigationHistoryJournal,
     findCollectionTraversal,
+    findLayerBaseIndex,
     type NavigationHistoryState,
 } from './navigationHistoryJournal';
 import { useAppViewStore } from '../stores/useAppViewStore';
 import type { AppView } from '../stores/useAppViewStore';
 import { usePlaybackStore } from '../stores/usePlaybackStore';
-import { usePlaybackEntryViewStore } from '../stores/usePlaybackEntryViewStore';
+import { resolvePlaybackSurface, usePlaybackEntryViewStore, type PlaybackEntryView } from '../stores/usePlaybackEntryViewStore';
 import { setStatusMessage } from '../stores/useStatusMessageStore';
 import i18n from '../i18n/config';
 
@@ -76,11 +77,12 @@ export const shouldReplacePlayerNavigation = (
 
 export const resolvePlayerCapsuleNavigationTarget = (
     view: ViewState,
-    playbackEntryView: 'player' | 'lattice',
+    playbackEntryView: PlaybackEntryView,
     isFmMode: boolean,
 ): 'player' | 'lattice' | null => {
     if (view === 'lattice') return null;
-    return playbackEntryView === 'lattice' && !isFmMode ? 'lattice' : 'player';
+    // fb3：「留在原处」没有自己的视图，显式要求进入播放视图（胶囊、启动、bravais 的「进入」）时去播放页。
+    return resolvePlaybackSurface(playbackEntryView) === 'lattice' && !isFmMode ? 'lattice' : 'player';
 };
 
 const getSearchHistorySnapshot = (): NavigationHistoryState['search'] => {
@@ -106,7 +108,7 @@ export const resolveStartupView = ({
     queueLength,
 }: {
     openPlayerOnLaunch: boolean;
-    playbackEntryView: 'player' | 'lattice';
+    playbackEntryView: PlaybackEntryView;
     isFmMode: boolean;
     queueLength: number;
 }): 'home' | 'player' | 'lattice' => {
@@ -122,7 +124,7 @@ export const isStartupLatticeDeferred = ({
     isFmMode,
 }: {
     openPlayerOnLaunch: boolean;
-    playbackEntryView: 'player' | 'lattice';
+    playbackEntryView: PlaybackEntryView;
     isFmMode: boolean;
 }): boolean => openPlayerOnLaunch && playbackEntryView === 'lattice' && !isFmMode;
 
@@ -399,6 +401,9 @@ export function useAppNavigation() {
         const view = useAppViewStore.getState().view;
         if (view === 'lattice') return;
         const entryView = usePlaybackEntryViewStore.getState().playbackEntryView;
+        // fb3「留在原处」：播放不带人去任何地方——资料库的卡片 / 墙自己显示正在播放（暂停 / 继续）。
+        // 已经在播放页上（例如自动切歌）时照旧走下面的 navigateToPlayer，与另外两个值一致。
+        if (entryView === 'stay' && view !== 'player') return;
         if (entryView === 'lattice' && view !== 'player' && !usePlaybackStore.getState().isFmMode) {
             navigateToLattice();
             return;
@@ -545,13 +550,19 @@ export function useAppNavigation() {
      * 应用内返回一层（返回按钮、Escape，以及折叠往返）：当前历史记录带集合就 history.back()，之后与浏览器后退同路
      * （popstate → 弹栈通知 → 恢复）；没有历史记录时手动弹一层，同样先通知再改 store。返回值是走了哪条路。
      */
-    const popCollectionLayer = useCallback((): 'history' | 'local' | 'none' => {
+    const popCollectionLayer = useCallback((options?: { leaveLayer?: boolean }): 'history' | 'local' | 'none' => {
         const snapshot = useCollectionNavigationStore.getState().snapshot;
         if (!snapshot) {
             return 'none';
         }
         if (window.history.state?.collection) {
-            window.history.back();
+            // leaveLayer（折叠往返）：当前层之上若压着 suite 自己的面板记录（同一个栈，例如 bravais 的列表面板），
+            // 连它们一起退，落到上一层；只退一步会只关掉面板、留在这一层。应用内返回不传——返回先关面板。
+            const index = getAppHistoryIndex(window.history.state);
+            if (options?.leaveLayer) historyJournal.observe(window.history.state);
+            const steps = options?.leaveLayer ? index - findLayerBaseIndex(historyJournal, index) + 1 : 1;
+            if (steps > 1) window.history.go(-steps);
+            else window.history.back();
             return 'history';
         }
 
@@ -568,7 +579,7 @@ export function useAppNavigation() {
             setCurrentView('player');
         }
         return 'local';
-    }, [setCurrentView]);
+    }, [historyJournal, setCurrentView]);
 
     const pushCollection = useCallback((collection: GridViewCollectionDescriptor) => {
         if (pendingTraversalRef.current !== null) return;
@@ -576,7 +587,7 @@ export function useAppNavigation() {
         if (decision.kind === 'back') {
             // 要进入的正好是上一层（歌手 ↔ 专辑来回点）：当作一次应用内返回，而不是再压一层（N1 折叠紧邻往返）。
             // beforeBack 由弹栈通知跑一次（宿主在这条路上不跑 beforePush / beforeBack）。
-            if (popCollectionLayer() === 'history') beginCollectionTraversal();
+            if (popCollectionLayer({ leaveLayer: true }) === 'history') beginCollectionTraversal();
             return;
         }
         if (decision.kind !== 'push') {

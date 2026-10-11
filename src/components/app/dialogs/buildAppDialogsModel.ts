@@ -49,6 +49,7 @@ export type AppDialogsDeps = {
     setShowNaviLyricMatchModal: React.Dispatch<React.SetStateAction<boolean>>;
     setShowOnlineLyricMatchModal: React.Dispatch<React.SetStateAction<boolean>>;
     handleLyricMatchComplete: () => Promise<void>;
+    handleLyricMatchPureMusicMarkChanged: (marked: boolean) => Promise<void>;
     handleNaviLyricMatchComplete: () => Promise<void>;
     handleOnlineLyricMatchComplete: () => Promise<void>;
     pendingUnavailableReplacement: {
@@ -77,6 +78,7 @@ export const buildAppDialogsModel = ({
     setShowNaviLyricMatchModal,
     setShowOnlineLyricMatchModal,
     handleLyricMatchComplete,
+    handleLyricMatchPureMusicMarkChanged,
     handleNaviLyricMatchComplete,
     handleOnlineLyricMatchComplete,
     pendingUnavailableReplacement,
@@ -99,6 +101,7 @@ export const buildAppDialogsModel = ({
             song: localSongs.find(song => song.id === currentSong.localRef.songId)!,
             onClose: () => setShowLyricMatchModal(false),
             onMatch: handleLyricMatchComplete,
+            onPureMusicMarkChanged: handleLyricMatchPureMusicMarkChanged,
             isDaylight,
         }
         : null,

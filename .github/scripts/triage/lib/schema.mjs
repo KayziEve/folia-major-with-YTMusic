@@ -2,6 +2,7 @@
 // LLM 输出的手写校验器。枚举、类型、取值范围任何一项不对就整份作废，退回确定性路径；
 // 不引入 ajv，是为了让 workflow 保持零依赖。
 
+import { causeAppliesTo } from './login-diagnosis.mjs';
 import { neutralizeLlmText } from './sanitize.mjs';
 
 export const ISSUE_TYPES = ['bug', 'feature', 'provider_request', 'question', 'support', 'spam', 'other'];
@@ -62,6 +63,38 @@ export function validateClassification(raw, config) {
             needsErrorLog: raw.needs_error_log ?? null,
             tldr: boundedTldr.length > 0 ? boundedTldr : null,
             reason: neutralizeLlmText(raw.reason ?? '', 200),
+        },
+    };
+}
+
+// 校验登录诊断结果。causes 里不认识的 id、平台不适用的原因直接丢掉（LLM 偶尔会编 id），类型不对才整份作废。
+export function validateDiagnosis(raw, playbook, provider) {
+    const errors = [];
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, value: null, errors: ['输出不是 JSON 对象'] };
+    const causes = raw.causes ?? [];
+    if (!Array.isArray(causes)) errors.push('causes 必须是数组');
+    else if (!causes.every(item => item && typeof item.id === 'string' && isConfidence(item.confidence))) errors.push('causes 每项必须是 { id, confidence }');
+    if (raw.analysis !== undefined && raw.analysis !== null && typeof raw.analysis !== 'string') errors.push('analysis 必须是字符串');
+    const suggestions = raw.suggestions ?? [];
+    if (!(Array.isArray(suggestions) && suggestions.every(item => typeof item === 'string'))) errors.push('suggestions 必须是字符串数组');
+    if (raw.needs_maintainer !== undefined && typeof raw.needs_maintainer !== 'boolean') errors.push('needs_maintainer 必须是布尔值');
+    if (errors.length > 0) return { ok: false, value: null, errors };
+
+    const known = new Map(playbook.causes.map(cause => [cause.id, cause]));
+    const seen = new Set();
+    const validCauses = [...causes]
+        .sort((a, b) => b.confidence - a.confidence)
+        .filter(item => known.has(item.id) && causeAppliesTo(known.get(item.id), provider) && !seen.has(item.id) && seen.add(item.id))
+        .map(item => ({ id: item.id, confidence: item.confidence }));
+    const escape = { escapeMarkdown: true };
+    return {
+        ok: true,
+        errors: [],
+        value: {
+            causes: validCauses,
+            analysis: neutralizeLlmText(raw.analysis ?? '', 220, escape) || null,
+            suggestions: suggestions.map(item => neutralizeLlmText(item.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, ''), 100, escape)).filter(Boolean).slice(0, 3),
+            needsMaintainer: raw.needs_maintainer ?? null,
         },
     };
 }

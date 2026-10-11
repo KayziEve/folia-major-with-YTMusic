@@ -9,11 +9,41 @@ import { waitForAppMounted } from '../helpers/appState';
 // 数据是导入的本地曲库（一首「Test Artist - Midnight Train」，专辑「Fixture Album」）：不出网，歌手 / 专辑都有本地实体。
 // P4.5 起「完成」语义由宿主统一：返回按钮 = 完成（清会话），浏览器后退 = 离开但保留（文件末尾两套 suite 各一条）；
 // 浏览器后退也跑 suite 的 beforeBack（网格的反向移形换影，单独一条打开转场来看）。
+// B11 起 bravais 也在这里：它的换层由 stage 观察导航深度驱动，根节点的 data-bravais-shift(-seq) 记下每次换层的种类，
+// 用它数「每次返回只翻一次」（应用内返回、浏览器后退、N1 折回、面包屑跳层），以及从搜索页 / 播放页打开集合时的
+// 整墙入场（enter）与回到来源时的整墙出场（exit）。
 
 const collectionLayer = (page: Page) => page.locator('[data-library-renderer]');
 const grid = (page: Page) => page.locator('[data-library-renderer="grid"]');
 const tui = (page: Page) => page.locator('[data-library-renderer="tui"]');
 const gridBack = (page: Page) => grid(page).locator('button').filter({ has: page.locator('svg.lucide-chevron-left') }).first();
+const bravais = (page: Page) => page.locator('[data-library-renderer="bravais"]');
+const bravaisStage = (page: Page) => page.locator('[data-library-stage="bravais"]');
+/** 缝里的 ‹（完成：onDone）。 */
+const bravaisBack = (page: Page) => bravaisStage(page).locator('[data-bravais-seam-action="back"]').first();
+const crumb = (page: Page, kind: string) => bravaisStage(page).locator(`[data-bravais-crumb="${kind}"]`);
+/** 等墙上的翻牌放完。 */
+const waitForWall = (page: Page) => expect(page.locator('[data-library-stage="bravais"][data-bravais-settling]')).toHaveCount(0);
+/**
+ * 从现在起记下 bravais stage 每一次换层的种类（push / back / replace / enter / exit / first）。stage 可能卸载再挂载
+ * （去播放页再回来），所以盯整个文档，按「哪个根节点 + 序号」认新的一次。
+ */
+const watchShifts = (page: Page) => page.evaluate(() => {
+    const record: string[] = [];
+    const flag = window as unknown as { __bravaisShifts?: string[] };
+    flag.__bravaisShifts = record;
+    let lastRoot: Element | null = document.querySelector('[data-library-stage="bravais"]');
+    let lastSeq = lastRoot?.getAttribute('data-bravais-shift-seq') ?? null;
+    new MutationObserver(() => {
+        const root = document.querySelector('[data-library-stage="bravais"]');
+        const seq = root?.getAttribute('data-bravais-shift-seq') ?? null;
+        if (!root || seq === null || (root === lastRoot && seq === lastSeq)) return;
+        lastRoot = root;
+        lastSeq = seq;
+        record.push(root.getAttribute('data-bravais-shift') ?? '');
+    }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['data-bravais-shift-seq'] });
+});
+const shifts = (page: Page) => page.evaluate(() => (window as unknown as { __bravaisShifts?: string[] }).__bravaisShifts ?? []);
 const historyState = (page: Page) => page.evaluate(() => ({
     hash: window.location.hash,
     view: (window.history.state as { view?: string } | null)?.view ?? null,
@@ -65,6 +95,13 @@ const searchLocal = async (page: Page, query: string) => {
     await expect(page.getByRole('button', { name: 'Test Artist' })).toBeEnabled();
     expect(await historyState(page)).toMatchObject({ hash: `#search/${query}`, view: 'home', stack: [] });
 };
+
+/**
+ * 换成 bravais 后等它的 stage 挂上（stage 是 lazy 的）。搜索页下面的首页外壳还挂着，stage 会在那里先显示一次首页层
+ * （记成 first）；不等的话，这次挂载可能落在 watchShifts 之后、点击之前（记下 first + enter），也可能落在点击之后
+ * （直接以 enter 挂上），用例就随 chunk 的加载快慢时过时不过。
+ */
+const waitForBravaisStage = (page: Page) => expect(bravaisStage(page)).toHaveAttribute('data-bravais-shift-seq', /.+/);
 
 /** 搜索页还在、结果还在：返回落回的就是离开时的那一页。 */
 const expectSearchResults = async (page: Page, query: string) => {
@@ -136,6 +173,48 @@ test.describe('search results', () => {
         await tui(page).locator('[data-tui-back]').click();
         await expectSearchResults(page, 'Midnight');
     });
+
+    // B11：搜索页下面没有首页墙——打开是整墙入场（不是从首页翻过去），‹ 回到搜索页是整墙出场；面包屑的根是「搜索」。
+    test('[bravais] an album from the search enters the whole wall, and Back exits it to the search', async ({ page }) => {
+        await openLocalHome(page);
+        await searchLocal(page, 'Midnight');
+        await selectSuite(page, 'bravais');
+        await waitForBravaisStage(page);
+        await watchShifts(page);
+
+        await page.getByRole('button', { name: 'Fixture Album' }).click();
+        await expect(bravais(page)).toHaveAttribute('data-library-surface', 'collection');
+        await expect(bravaisStage(page).locator('[data-bravais-seam-title]').first()).toHaveText('Fixture Album');
+        await expect(bravaisStage(page).locator('.bravais-tile[data-library-entry]').first()).toBeAttached();
+        expect(await historyState(page)).toMatchObject({ view: 'home', stack: ['Fixture Album'], origin: 'search' });
+        await expect.poll(() => shifts(page)).toEqual(['enter']);
+        await expect(crumb(page, 'root')).toHaveText('Search');
+
+        await waitForWall(page);
+        await bravaisBack(page).click();
+        await expectSearchResults(page, 'Midnight');
+        await expect.poll(() => shifts(page)).toEqual(['enter', 'exit']);
+    });
+
+    test('[bravais] an artist from the search opens the bravais artist page, and Back returns to the search', async ({ page }) => {
+        await openLocalHome(page);
+        await searchLocal(page, 'Midnight');
+        await selectSuite(page, 'bravais');
+        await waitForBravaisStage(page);
+        await watchShifts(page);
+
+        await page.getByRole('button', { name: 'Test Artist' }).click();
+        await expect(bravais(page)).toHaveAttribute('data-library-surface', 'artist');
+        await expect(grid(page)).toHaveCount(0);
+        await expect(bravaisStage(page).locator('[data-bravais-seam-title]').first()).toHaveText('Test Artist');
+        expect(await historyState(page)).toMatchObject({ view: 'home', stack: ['Test Artist'], origin: 'search' });
+        await expect.poll(() => shifts(page)).toEqual(['enter']);
+
+        await waitForWall(page);
+        await bravaisBack(page).click();
+        await expectSearchResults(page, 'Midnight');
+        await expect.poll(() => shifts(page)).toEqual(['enter', 'exit']);
+    });
 });
 
 // 搜索结果是提交那一刻的快照。导入后紧接着搜，实体目录还没加载完，快照里的行没有专辑、歌手不带实体；
@@ -187,6 +266,32 @@ test('the player panel Cover tab opens the album, and Back returns to the player
     await expect(page.getByTestId('panel-toggle')).toBeVisible();
 });
 
+// B11：从播放页打开的集合下面也没有首页墙（首页外壳那时已卸载，stage 随打开重新挂载）：整墙入场；‹ 回到播放页是整墙出场。
+test('[bravais] the player panel Cover tab enters the album as a whole wall, and Back exits it to the player', async ({ page }) => {
+    await openLocalHome(page);
+    await searchLocal(page, 'Midnight');
+    await selectSuite(page, 'bravais');
+    await searchResult(page).click();
+    await expect.poll(async () => (await historyState(page)).view).toBe('player');
+    await expect(page.getByTestId('panel-toggle')).toBeVisible();
+    await watchShifts(page);
+
+    await page.getByTestId('panel-toggle').locator('button').last().click();
+    await page.getByText('Fixture Album', { exact: true }).last().click();
+    await expect(bravais(page)).toHaveAttribute('data-library-surface', 'collection');
+    await expect(bravaisStage(page).locator('[data-bravais-seam-title]').first()).toHaveText('Fixture Album');
+    expect(await historyState(page)).toMatchObject({ view: 'home', stack: ['Fixture Album'], origin: 'player' });
+    await expect.poll(() => shifts(page)).toEqual(['enter']);
+    await expect(crumb(page, 'root')).toHaveText('Now Playing');
+
+    await waitForWall(page);
+    await bravaisBack(page).click();
+    await expect.poll(async () => (await historyState(page)).view).toBe('player');
+    expect(await historyState(page)).toMatchObject({ hash: '#player', stack: [] });
+    await expect.poll(() => shifts(page)).toEqual(['enter', 'exit']);
+    await expect(page.getByTestId('panel-toggle')).toBeVisible();
+});
+
 test('a nested album pops one level on browser back, and the next back leaves the collection', async ({ page }) => {
     await openLocalHome(page);
     await page.getByRole('heading', { name: 'All Songs' }).first().click();
@@ -229,12 +334,12 @@ test('reloading with a collection open lands on the home without it', async ({ p
 
 // P4.5：「完成」与「离开」由宿主统一，两套 suite 同一个手势同一个含义——显式的返回按钮 = 看完了（清掉这一层的
 // 浏览会话与网格的布局记录），浏览器后退 = 离开但保留（Escape 同样保留，探针里覆盖）。筛选词在浏览会话里，所以用它来看。
-for (const suite of ['grid', 'tui'] as const) {
+for (const suite of ['grid', 'tui', 'bravais'] as const) {
     test(`[${suite}] browser back keeps the filter, the Back button forgets it`, async ({ page }) => {
         await openLocalHome(page);
         await searchLocal(page, 'Midnight');
         await selectSuite(page, suite);
-        const layer = suite === 'grid' ? grid(page) : tui(page);
+        const layer = suite === 'grid' ? grid(page) : suite === 'tui' ? tui(page) : bravais(page);
         const openAlbum = async () => {
             await page.getByRole('button', { name: 'Fixture Album' }).click();
             await expect(layer).toHaveAttribute('data-library-surface', 'collection');
@@ -251,7 +356,8 @@ for (const suite of ['grid', 'tui'] as const) {
         await expect.poll(() => readQuery(page)).toBe('midnight');
 
         if (suite === 'grid') await gridBack(page).click();
-        else await tui(page).locator('[data-tui-back]').click();
+        else if (suite === 'tui') await tui(page).locator('[data-tui-back]').click();
+        else await bravaisBack(page).click();
         await expectSearchResults(page, 'Midnight');
         await openAlbum();
         await expect.poll(() => readQuery(page)).toBe('');
@@ -360,11 +466,97 @@ test('[grid] bouncing between an artist and an album keeps the depth at 2–3, a
     expect(await reverseRuns()).toBe(6);
 });
 
+// B11：bravais 的每一种返回都只翻一次——应用内返回（‹）、浏览器后退、N1 折回（聚焦卡上点上一层的歌手）、面包屑跳层
+// （列表面板开着，跳过折叠的中间层回到第 1 层；导航层越过面板记录）都是一次深度变浅，stage 各记一次 back；压栈各记一次
+// push。bravais 不声明 beforeBack，翻牌由 stage 观察深度驱动，所以这里数的是 stage 的换层，不是钩子。
+test('[bravais] every way back flips the wall once: Back, browser back, the N1 fold and a breadcrumb jump past the list panel', async ({ page }) => {
+    await openLocalHome(page);
+    await page.getByRole('heading', { name: 'All Songs' }).first().click();
+    await expect(grid(page)).toHaveCount(1);
+    await selectSuite(page, 'bravais');
+    await expect(bravais(page)).toHaveAttribute('data-library-surface', 'collection');
+    await expect(bravaisStage(page).locator('.bravais-tile[data-library-entry]').first()).toBeAttached();
+
+    const stackNow = async () => (await historyState(page)).stack;
+    // 聚焦卡上的歌手（全部歌曲、专辑页都有这一首）。
+    const openArtist = async () => {
+        await waitForWall(page);
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+        await page.keyboard.press('ArrowRight');
+        await page.keyboard.press('Enter');
+        await page.locator('[data-bravais-focus-card]').getByRole('button', { name: 'Test Artist', exact: true }).click();
+        await expect(bravais(page)).toHaveAttribute('data-library-surface', 'artist');
+    };
+    // 歌手墙上的专辑磁贴。
+    const openAlbum = async () => {
+        await waitForWall(page);
+        await page.locator('.bravais-tile[data-bravais-kind="album"]').filter({ hasText: 'Fixture Album' }).first()
+            .locator('article').dispatchEvent('click');
+        await expect.poll(stackNow).toEqual(['All Songs', 'Test Artist', 'Fixture Album']);
+        await expect(bravais(page)).toHaveAttribute('data-library-surface', 'collection');
+    };
+    const settle = async () => {
+        await waitForWall(page);
+        await page.waitForTimeout(400);
+    };
+
+    await openArtist();
+    await openAlbum();
+    await settle();
+    await watchShifts(page);
+
+    // 应用内返回（缝里的 ‹）。
+    await bravaisBack(page).click();
+    await expect.poll(stackNow).toEqual(['All Songs', 'Test Artist']);
+    await settle();
+    expect(await shifts(page)).toEqual(['back']);
+
+    // 浏览器后退。
+    await openAlbum();
+    await settle();
+    await page.goBack();
+    await expect.poll(stackNow).toEqual(['All Songs', 'Test Artist']);
+    await settle();
+    expect(await shifts(page)).toEqual(['back', 'push', 'back']);
+
+    // N1 折回：专辑页的聚焦卡上点歌手（正好是上一层）。
+    await openAlbum();
+    await settle();
+    await openArtist();
+    await expect.poll(stackNow).toEqual(['All Songs', 'Test Artist']);
+    await settle();
+    expect(await shifts(page)).toEqual(['back', 'push', 'back', 'push', 'back']);
+
+    // 面包屑：列表面板开着，展开折叠的中间层，点第 1 层（全部歌曲）。面板记录被越过，落地后面板关着。
+    await openAlbum();
+    await settle();
+    await bravaisStage(page).locator('[data-bravais-seam-action="list"]').click();
+    await expect(page.locator('[data-bravais-list]')).toBeVisible();
+    await expect(crumb(page, 'current')).toHaveText('Fixture Album');
+    await expect(crumb(page, 'panel')).toHaveCount(1);
+    await expect(crumb(page, 'layer')).toHaveText('Test Artist');
+    await crumb(page, 'more').click();
+    await expect(crumb(page, 'layer')).toHaveText(['All Songs', 'Test Artist']);
+    await bravaisStage(page).locator('[data-bravais-crumb="layer"][data-bravais-crumb-depth="1"]').click();
+    await expect.poll(stackNow).toEqual(['All Songs']);
+    await expect(page.locator('[data-bravais-list]')).toHaveCount(0);
+    await settle();
+    expect(await shifts(page)).toEqual(['back', 'push', 'back', 'push', 'back', 'push', 'back']);
+
+    // 根（书库）：整个关掉，回到首页墙。
+    await expect(crumb(page, 'root')).toHaveText('Library');
+    await crumb(page, 'root').click();
+    await expect.poll(stackNow).toEqual([]);
+    await expect(collectionLayer(page)).toHaveCount(0);
+    await settle();
+    expect(await shifts(page)).toEqual(['back', 'push', 'back', 'push', 'back', 'push', 'back', 'back']);
+});
+
 /**
  * 切换 suite。搜索页盖住了开发版浮层（浮层在首页之上、搜索页之下），所以直接调浮层按钮背后的同一个函数
  * （switchLibrarySuite：先冲刷会话、清网格转场，再写 suite store）。
  */
-async function selectSuite(page: Page, suite: 'grid' | 'tui') {
+async function selectSuite(page: Page, suite: 'grid' | 'tui' | 'bravais') {
     await page.evaluate(async id => {
         const modulePath = '/src/library/app/switchLibrarySuite.ts';
         const { switchLibrarySuite } = await import(/* @vite-ignore */ modulePath);

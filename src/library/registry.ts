@@ -117,6 +117,15 @@ export const resolveLibraryStage = (suiteId: string): ResolvedLibraryStage | nul
 );
 
 /**
+ * 生效 suite 的 stage 是否参与与 Lattice 的翻牌交接（manifest 的 stageWallHandoff）。离开 Lattice 回首页的那一刻
+ * stage 还没挂上，App 的交接 director 用它决定要不要让 Lattice 留着等 stage 接手；没有 stage（grid / TUI）时为 false。
+ */
+export const libraryStageHandsOffWall = (suiteId: string): boolean => {
+    const stage = resolveLibraryStage(suiteId);
+    return Boolean(stage && SUITE_INDEX.get(stage.suiteId)?.stageWallHandoff);
+};
+
+/**
  * 「完成」（返回按钮）时忘掉这一层的布局记录：问**每一套**可用的 suite，不只是正在渲染它的那套
  * （在 TUI 里看完的集合，下次在网格里打开也从头开始）。没有布局记录的 suite 不声明 layout。
  */

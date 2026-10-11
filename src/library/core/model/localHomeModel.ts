@@ -36,6 +36,9 @@ const getLocalCoverUrl = (songs: LocalSong[], coverAssetUrl: LocalCoverAssetUrlR
     return localCoverUrl || preferredSong.onlineMetadata?.coverUrl;
 };
 
+/** 文件夹页签最前面那张虚拟的「全部歌曲」卡的 id。 */
+export const LOCAL_ALL_SONGS_ID = 'folder-__all-songs__';
+
 const sortByName = <T extends { name: string }>(items: T[]) => (
     items.sort((a, b) => a.name.localeCompare(b.name))
 );
@@ -89,7 +92,7 @@ export const buildLocalHomeGroups = (
             name: t('localMusic.allSongs') || 'All Songs',
             songs: sortLocalFolderSongs(localSongs),
             coverUrl: getLocalCoverUrlOf(localSongs),
-            id: 'folder-__all-songs__',
+            id: LOCAL_ALL_SONGS_ID,
             isVirtual: true,
             trackCount: localSongs.length,
             description: t('localMusic.folder'),

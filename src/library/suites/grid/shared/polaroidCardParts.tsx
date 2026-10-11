@@ -1,10 +1,11 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Disc, Play, Plus, X } from 'lucide-react';
+import { Disc, Pause, Play, Plus, X } from 'lucide-react';
 import type { SongResult, UnifiedSong } from '../../../../types';
 import { getSizedCoverUrl } from '../../../../utils/coverUrl';
 import { canResolveSongCatalogRef } from '../../../../services/onlineMusic/catalogRefs';
 import { resolveTrackArtistTargetId } from '../../../core/model/trackLinks';
+import type { GridPlaybackMark } from './useGridStayPlayback';
 
 // src/library/suites/grid/shared/polaroidCardParts.tsx
 // The pieces both PolaroidCard layouts share: the cover image with its spinner placeholder, the
@@ -175,8 +176,13 @@ export const PolaroidCardActions: React.FC<{
     isUnavailable: boolean;
     onSelect: () => void;
     onAddQueue?: () => void;
+    /**
+     * fb3：「留在原处」时正在播放的这首：播放键画成暂停（在播）/ 继续（暂停中），onSelect 由调用方路由到播放开关
+     * （useGridStayPlayback）。null / 不给时是普通的「播放」。
+     */
+    playbackMark?: GridPlaybackMark | null;
     t: any;
-}> = ({ mode, isEditMode, isUnavailable, onSelect, onAddQueue, t }) => (
+}> = ({ mode, isEditMode, isUnavailable, onSelect, onAddQueue, playbackMark = null, t }) => (
     <div className="flex items-center gap-1.5 shrink-0">
         {mode === 'tracks' && !isEditMode && (
             <button
@@ -191,9 +197,13 @@ export const PolaroidCardActions: React.FC<{
                     transition: 'opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, color 0.2s ease',
                 }}
                 className="w-9 h-9 rounded-full bg-zinc-800/10 dark:bg-zinc-100/10 hover:bg-zinc-900 hover:text-zinc-100 dark:hover:bg-zinc-100 dark:hover:text-zinc-900 text-current flex items-center justify-center shadow-sm pointer-events-auto z-10"
-                title={t('playlist.play')}
+                title={playbackMark ? t(playbackMark === 'playing' ? 'ui.pause' : 'ui.play') : t('playlist.play')}
+                aria-label={playbackMark ? t(playbackMark === 'playing' ? 'ui.pause' : 'ui.play') : t('playlist.play')}
+                data-grid-card-play={playbackMark ?? 'play'}
             >
-                <Play size={15} fill="currentColor" className="ml-0.5" />
+                {playbackMark === 'playing'
+                    ? <Pause size={15} fill="currentColor" />
+                    : <Play size={15} fill="currentColor" className="ml-0.5" />}
             </button>
         )}
         {mode === 'tracks' && onAddQueue && !isUnavailable && !isEditMode && (

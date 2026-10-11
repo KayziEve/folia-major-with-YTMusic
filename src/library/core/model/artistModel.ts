@@ -105,6 +105,7 @@ export const mapNavidromeArtist = (
             name: album.name,
             coverUrl: album.coverArt ? coverArtUrl(album.coverArt) : undefined,
             publishedAt: album.year ? new Date(album.year, 0, 1).getTime() : undefined,
+            trackCount: typeof album.songCount === 'number' && album.songCount > 0 ? album.songCount : undefined,
         })),
         topSongAlbumIds: albums.slice(0, NAVIDROME_TOP_SONG_ALBUM_COUNT).map(album => album.id),
     };
@@ -149,7 +150,7 @@ export const deriveLocalArtist = (
         return activeId ? index.entitiesById.get(activeId) : undefined;
     };
 
-    const albumMap = new Map<string, { id: string; name: string; coverUrl?: string; publishedAt?: number }>();
+    const albumMap = new Map<string, { id: string; name: string; coverUrl?: string; publishedAt?: number; trackCount: number }>();
     artistSongs.forEach(song => {
         const albumEntity = albumKeyOf(song);
         const albumKey = albumEntity?.id || UNKNOWN_LOCAL_ALBUM_KEY;
@@ -161,9 +162,11 @@ export const deriveLocalArtist = (
                 name: albumEntity?.displayName || deps.t('localMusic.unknownAlbum'),
                 coverUrl: coverUrl || undefined,
                 publishedAt: undefined,
+                trackCount: 1,
             });
-        } else if (coverUrl && !existing.coverUrl) {
-            existing.coverUrl = coverUrl;
+        } else {
+            existing.trackCount += 1;
+            if (coverUrl && !existing.coverUrl) existing.coverUrl = coverUrl;
         }
     });
     const albums = Array.from(albumMap.values());

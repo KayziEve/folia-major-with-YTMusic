@@ -7,7 +7,7 @@ import type { LibraryDirectoryBatchController } from './directory';
 import type { LibraryHomeData } from './home';
 import type { LibraryHomeResources } from './homeModel';
 import type { CollectionMutationController } from './mutations';
-import type { LibraryPlaybackPort } from './ports';
+import type { LibraryPlaybackPort, LibraryStageToolsPort } from './ports';
 import type { CollectionResource } from './resource';
 import type { LibrarySuiteChromeActionMeta } from './suiteChrome';
 
@@ -276,6 +276,17 @@ export type LibrarySurfaceDeclaration<Props> = {
     extraActions?: readonly string[];
 };
 
+/**
+ * 导航栈里的一层（面包屑用，B11）：自底向上按位置排列，栈里可以有重复的集合（N1 只折叠紧邻往返）。
+ * key 是那一层的 collectionKey（与浏览会话、层描述的键同一种），name 是打开时描述里的名字（栈顶的名字以 surface
+ * 自己的为准：改名、Navidrome 刷新后的新名字只反映在栈顶）。
+ */
+export type LibraryNavigationCrumb = {
+    readonly key: string;
+    readonly name: string;
+    readonly type: string;
+};
+
 /** 宿主在导航时交给 suite 转场钩子的上下文（导航发生之前读的）。 */
 export type LibraryNavigationContext = {
     /** 导航栈当前深度。 */
@@ -284,6 +295,11 @@ export type LibraryNavigationContext = {
     origin: CollectionNavigationOrigin | null;
     /** 当前顶层集合的类型。 */
     activeType: string | null;
+    /**
+     * 导航栈每一层（B11，面包屑点击跳层用，长度等于 depth）。宿主总会给；缺省（旧的调用方、测试替身）时当作不知道
+     * 中间层的名字。跳层本身走 LibraryCollectionNavigation.onPopTo（depth = 保留的层数，按这里的位置算）。
+     */
+    trail?: readonly LibraryNavigationCrumb[];
 };
 
 /** 背景板单段淡入或淡出的时长（秒）与贝塞尔曲线。 */
@@ -327,6 +343,9 @@ export type LibrarySuiteTransitions = {
     reset?: () => void;
 };
 
+/** 透出的播放页画面（reportPlayerBackdrop）：画不画歌词文字、加不加模糊。 */
+export type LibraryPlayerBackdrop = { readonly lyrics: boolean; readonly blur: boolean };
+
 /**
  * stage 的输入（B1）。stage 是一套 suite 常驻在首页与集合层之间的舞台（bravais 的整面墙），横跨 surface：
  * 首页与集合 / 歌手 surface 只把自己的层描述交给 suite 内部的 store，由 stage 统一画出来。
@@ -340,6 +359,40 @@ export type LibrarySuiteStageProps = {
     isDaylight: boolean;
     /** 当前集合导航快照（只读）：stage 据此知道「现在是哪一层」，用于转场方向与层栈。首页时 depth 为 0。 */
     navigation: LibraryNavigationContext;
+    /**
+     * 报告 stage 此刻是否**完全**盖住了下面的播放页（B6b）。报 true 时，首页完全显示（淡入结束）之后宿主卸载
+     * visualizer，不再在墙下面全速渲染；首页被设置弹窗 / 面板盖住、回到播放页或改报 false 时立即重新挂载。
+     * 只有画面完全不透光时才报 true（bravais 的「实色」档）；有任何透光处（窗、半透明材质）必须报 false。
+     * 缺省视为 false。stage 卸载、换 suite 时宿主自动复位为 false，不需要 stage 在卸载时报 false。
+     * 引用在同一次挂载内稳定；值不变时重复报告没有开销。
+     */
+    reportPlayerOcclusion: (occludes: boolean) => void;
+    /**
+     * 报告透出的播放页画面怎么画（bravais「墙后的画面」设置）：`lyrics` 画歌词文字、`blur` 加模糊。宿主只在首页显示着时
+     * 按它调整 visualizer（文字开关、visualizer 那一层的模糊），播放页不受影响。只有画面有透光处时才可能报 true；缺省与
+     * 复位都是两项 false（首页 visualizer 不画文字、不模糊，与没有 stage 的 suite 一样）。引用同一次挂载内稳定。
+     */
+    reportPlayerBackdrop: (backdrop: LibraryPlayerBackdrop) => void;
+    /**
+     * 回到播放页（首页数据的 onBackToPlayer，与网格首页右下角 › 同一个回调）。stage 横跨首页与集合层，所以在这里给，
+     * 而不是只给首页 surface（实测反馈 1）。bravais 左上角的隐藏式返回在首页根层、有正在播放 / 已加载的歌时用它；
+     * 不在根层时那颗按钮是缝里 ‹ 的层返回，不用它。缺省时首页根层不画那颗按钮。
+     */
+    onBackToPlayer?: () => void;
+    /** fb3：暂停 / 继续正在播放的那首（首页数据的 onTogglePlayback）。正在播放的聚焦卡上的播放键用它。缺省时照旧立即播放。 */
+    onTogglePlayback?: () => void;
+    /**
+     * fb3：进入播放视图（首页数据的 onEnterPlaybackView：按「播放后进入的视图」去 Lattice 或播放页，「留在原处」时去播放页）。
+     * 正在播放的聚焦卡上的「进入」按钮用它；缺省时不画那颗按钮。
+     */
+    onEnterPlaybackView?: () => void;
+    /**
+     * 进入 Lattice（首页数据的 onOpenLattice，与首页工具格「队列拼贴」同一个入口；翻牌交接照常发生）。bravais 右下角工具面板的
+     * 「前往 Lattice」用它；缺省时不画那一格。
+     */
+    onOpenLattice?: () => void;
+    /** 墙上工具面板的宿主动作（首页数据的 stageTools：生成主题、队列洗牌、音量预览）。缺省时工具面板不画这几项。 */
+    tools?: LibraryStageToolsPort;
 };
 
 /**
@@ -368,6 +421,13 @@ export type LibrarySuiteManifest = {
      * 非默认 suite 必须用 React.lazy（没选中它的用户不加载它的 chunk）。
      */
     stage?: LibrarySurfaceComponent<LibrarySuiteStageProps>;
+    /**
+     * stage 参与与 Lattice 的翻牌交接：进 / 出 Lattice 时两面墙短暂同时挂着，看起来是同一面墙换了内容。协议是 app 层的
+     * useWallHandoffStore（stage 以「首页墙」登记 peer、按会话阶段合上 / 张开缝与窗、翻出 / 翻进磁贴）。离开 Lattice
+     * 回首页的那一刻 stage 还没挂上，宿主要提前知道该不该让 Lattice 留着等它接手，所以静态声明在这里。缺省为 false：
+     * Lattice 照旧整层淡出（grid / TUI 没有 stage，不声明）。
+     */
+    stageWallHandoff?: boolean;
     /**
      * 外观动作（B2，见 ./suiteChrome）：只出现在命令面板里的 suite 自有操作。这里静态声明元数据，命令由命令面板按它
      * 生成（id 为 `<suiteId>-<动作 id>`）；运行时由 suite 用 useLibrarySuiteChromeRegistration 注册实现，只有注册着的

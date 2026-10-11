@@ -47,9 +47,22 @@ describe('command palette registry contract', () => {
         expect(COMMAND_PALETTE_COMMANDS.map(command => command.id)).toMatchSnapshot();
     });
 
-    it('enumerates the chrome actions the available suites declare (none yet: grid and TUI declare none)', () => {
+    it('enumerates the chrome actions the available suites declare (bravais only: grid and TUI declare none)', () => {
         // B6 起 bravais 进 registry，这里列出它在 manifest 里声明的外观动作（`bravais-<动作 id>`）。
-        expect(SUITE_CHROME_COMMANDS.map(command => command.id)).toEqual([]);
+        expect(SUITE_CHROME_COMMANDS.map(command => command.id)).toEqual([
+            'bravais-seam-full',
+            'bravais-seam-spine',
+            'bravais-seam-hide',
+            'bravais-seam-here',
+            'bravais-list',
+            // B9：首页本地的目录树面板（批量模式）。
+            'bravais-directory',
+            'bravais-locate-playing',
+            // B6b③ 透光：循环档位、每块多开 / 少开一个窗。
+            'bravais-wall-look',
+            'bravais-more-windows',
+            'bravais-fewer-windows',
+        ]);
         expect(staticCommands).toEqual(expect.arrayContaining(SUITE_CHROME_COMMANDS));
     });
 

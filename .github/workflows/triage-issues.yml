@@ -1,6 +1,7 @@
 name: Triage Issues
 
-# issue 的自动分类、打标签、重复归并、信息追问与申诉提醒；LLM 用 DeepSeek，详见 .github/triage/config.json。
+# issue 的自动分类、打标签、重复归并、信息追问、扫码登录诊断与申诉提醒；LLM 用 DeepSeek，详见 .github/triage/config.json，
+# 登录诊断的已知原因与处理步骤见 .github/triage/login-playbook.json。
 # 运行模式由仓库变量 TRIAGE_MODE 控制（off / dry-run / live），没设时取 config.json 的 mode。
 on:
   issues:

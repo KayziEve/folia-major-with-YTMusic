@@ -42,6 +42,7 @@ describe('resolvePagePonderTarget', () => {
         'grid-view-page',
         'help-page',
         'settings-page',
+        'bravais-wall',
     ] as const)('lets the visible %s scope override the underlying main view', targetId => {
         expect(resolvePagePonderTarget('home', targetId)).toBe(targetId);
     });

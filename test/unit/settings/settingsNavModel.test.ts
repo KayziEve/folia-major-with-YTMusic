@@ -50,7 +50,7 @@ describe('settingsNavModel', () => {
     });
 
     it('expands every declared anchor under its owning section', () => {
-        const items = flattenSettingsNavItems(buildSettingsNavGroups(echo, { isElectron: true, hasLibrarySuiteChoice: true }));
+        const items = flattenSettingsNavItems(buildSettingsNavGroups(echo, { isElectron: true, hasLibrarySuiteChoice: true, isBravaisSuiteActive: true }));
         const rendered = items.flatMap(item => item.anchors.map(anchor => [anchor.id, item.id]));
         const declared = Object.entries(SETTINGS_ANCHOR_DEFINITIONS).map(([id, definition]) => [id, definition.section]);
 
@@ -66,6 +66,19 @@ describe('settingsNavModel', () => {
         expect(anchorsOf(true)).toContain('librarySuite');
         expect(anchorsOf(false)).not.toContain('librarySuite');
         expect(anchorsOf(false)).toContain('playbackEntryView');
+    });
+
+    it('lists the Bravais group only while bravais is the active suite (its section renders nothing otherwise)', () => {
+        const anchorsOf = (isBravaisSuiteActive: boolean) => findSettingsNavItem(
+            buildSettingsNavGroups(echo, { isElectron: false, hasLibrarySuiteChoice: true, isBravaisSuiteActive }),
+            'general',
+        )?.anchors.map(anchor => anchor.id);
+
+        expect(anchorsOf(true)).toEqual(expect.arrayContaining(['librarySuite', 'bravaisSettings']));
+        // 紧跟在「资料库界面」后面（与界面设置里的渲染顺序一致）。
+        expect(anchorsOf(true)!.indexOf('bravaisSettings')).toBe(anchorsOf(true)!.indexOf('librarySuite') + 1);
+        expect(anchorsOf(false)).toContain('librarySuite');
+        expect(anchorsOf(false)).not.toContain('bravaisSettings');
     });
 
     it.each([['en', en], ['zh-CN', zhCN], ['in', id]] as const)('has every label and description key in %s', (_name, bundle) => {

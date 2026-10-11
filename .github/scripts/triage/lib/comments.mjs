@@ -47,8 +47,32 @@ const MISSING_ITEMS = {
 export const PROVIDER_REQUEST_TEXT = '添加新的平台需要对应平台的 API 后端。我们会尽可能支持用户需求较高的平台，但这类功能需要较长时间评估，因此无法保证实现。';
 export const APPLE_MUSIC_TEXT = 'Apple Music 平台短期内不会支持，因为该平台对第三方接入有非常严格的限制。';
 
+// 扫码登录诊断段落。已知原因的处理步骤出自维护者写的 login-playbook.json；
+// AI 只贡献 analysis 与 suggestions 两段文字（已在 schema.mjs 无害化），并明确标注来源。
+export function renderDiagnosisSection(diagnosis, playbook) {
+    const byId = new Map(playbook.causes.map(cause => [cause.id, cause]));
+    const causes = diagnosis.causes.map(id => byId.get(id)).filter(Boolean);
+    const suggestions = diagnosis.suggestions ?? [];
+    if (!causes.length && !diagnosis.analysis && !suggestions.length) return null;
+    const lines = ['### 登录问题初步诊断'];
+    lines.push(diagnosis.analysis
+        ? `> 以下分析由 AI 根据诊断报告自动生成，可能不准确，维护者会复核。\n\n${diagnosis.analysis}`
+        : '根据诊断报告自动匹配到以下已知问题，维护者会复核。');
+    causes.forEach((cause, index) => {
+        const heading = causes.length > 1 ? `可能原因 ${index + 1}` : '可能原因';
+        lines.push(`**${heading}：${cause.title}**\n${cause.steps.map((step, n) => `${n + 1}. ${step}`).join('\n')}`);
+    });
+    if (suggestions.length) {
+        lines.push(`**${causes.length ? '其他排查建议' : '排查建议'}**（AI 生成）\n${suggestions.map(item => `- ${item}`).join('\n')}`);
+    }
+    lines.push(diagnosis.needsMaintainer
+        ? '自动诊断不能完全解释这个问题，维护者会进一步排查。可以先试试上面的方法，有新进展请直接回复。'
+        : '按上面的方法处理后如果已经能正常登录，可以直接关闭本 issue；仍然失败请回复说明，维护者会跟进。');
+    return lines.join('\n\n');
+}
+
 // 统一的 triage 评论。sections 里每一项都可缺省，缺省就不渲染对应段落。
-export function renderTriageComment({ state, module, moduleDescription, tldr, providerRequest, missing, infoReceived, related, reason, rateLimited }) {
+export function renderTriageComment({ state, module, moduleDescription, tldr, diagnosis, playbook, providerRequest, missing, infoReceived, related, reason, rateLimited }) {
     const parts = [renderMarker(state)];
     if (module) {
         parts.push(`**初步归属模块**：\`${module}\`（${moduleDescription}）\n<sub>自动判断，如有误维护者可直接修改 \`module: *\` 标签。</sub>`);
@@ -56,6 +80,8 @@ export function renderTriageComment({ state, module, moduleDescription, tldr, pr
     if (tldr?.length) {
         parts.push(`### TL;DR\n> 由 AI 自动生成，可能不准确，以原文为准。\n\n${tldr.map(line => `- ${line}`).join('\n')}`);
     }
+    const diagnosisSection = diagnosis && playbook ? renderDiagnosisSection(diagnosis, playbook) : null;
+    if (diagnosisSection) parts.push(diagnosisSection);
     if (providerRequest) {
         const lines = [PROVIDER_REQUEST_TEXT];
         if (providerRequest.appleMusic) lines.push(APPLE_MUSIC_TEXT);
@@ -78,6 +104,11 @@ export function renderTriageComment({ state, module, moduleDescription, tldr, pr
     }
     parts.push(FOOTER);
     return parts.join('\n\n');
+}
+
+// 作者后来补了诊断报告时单独回一条：更新 triage 评论不会触发通知，用户看不到。
+export function renderDiagnosisComment({ at, reportHash, section }) {
+    return [renderMarker({ kind: 'diagnosis', reportHash, at }), section, FOOTER].join('\n\n');
 }
 
 const CLOSE_TEXT = {

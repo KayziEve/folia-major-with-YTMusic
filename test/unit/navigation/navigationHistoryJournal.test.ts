@@ -3,6 +3,7 @@ import type { CollectionNavigationSnapshot, GridViewCollectionDescriptor } from 
 import {
     createNavigationHistoryJournal,
     findCollectionTraversal,
+    findLayerBaseIndex,
     type NavigationHistoryState,
 } from '@/hooks/navigationHistoryJournal';
 
@@ -173,5 +174,49 @@ describe('findCollectionTraversal', () => {
     it('never returns zero steps', () => {
         const journal = journalOf(['home', null], ['home', snap('home', root)]);
         expect(findCollectionTraversal(journal, 1, snap('home', root), snap('home', root))).toBeNull();
+    });
+});
+
+// 合并进 bravais：suite 在一层之上自己 pushState 的面板记录（bravais 列表面板：同一个栈、view 为 home、index + 1）
+// 属于那一层。跳层与折叠往返都落在那一层的第一条记录上，不落在面板记录上。
+describe('suite panel entries above a layer', () => {
+    it('finds the first entry of the layer, stopping at another stack, another view or a gap', () => {
+        const journal = journalOf(
+            ['home', null],
+            ['home', snap('home', root)],
+            ['home', snap('home', root)],
+            ['home', snap('home', root, skyline)],
+            ['player', snap('home', root, skyline)],
+            ['home', snap('home', root, skyline)],
+            ['home', snap('home', root, skyline)],
+        );
+        expect(findLayerBaseIndex(journal, 2)).toBe(1);
+        expect(findLayerBaseIndex(journal, 1)).toBe(1);
+        expect(findLayerBaseIndex(journal, 3)).toBe(3);
+        // 播放页记录打断：从播放页回来压的那条 home 记录才是这一层的第一条。
+        expect(findLayerBaseIndex(journal, 6)).toBe(5);
+        expect(findLayerBaseIndex(journal, 4)).toBe(4);
+        expect(findLayerBaseIndex(journal, 9)).toBe(9);
+
+        const gap = createNavigationHistoryJournal(SESSION);
+        gap.reset(entry(3, 'home', snap('home', root)));
+        gap.observe(entry(4, 'home', snap('home', root)));
+        expect(findLayerBaseIndex(gap, 4)).toBe(3);
+    });
+
+    it('lands a jump on the first entry of the target layer, not on its panel entry', () => {
+        // 根 → 根上开面板 → Skyline（压栈时面板保留）→ Skyline 上开面板。
+        const journal = journalOf(
+            ['home', null],
+            ['home', snap('home', root)],
+            ['home', snap('home', root)],
+            ['home', snap('home', root, skyline)],
+            ['home', snap('home', root, skyline)],
+        );
+        const from = snap('home', root, skyline);
+        expect(findCollectionTraversal(journal, 4, from, snap('home', root))).toBe(3);
+        expect(findCollectionTraversal(journal, 3, from, snap('home', root))).toBe(2);
+        // 整个关掉：落到根之前那一条，而不是根的第一条（面板记录之下）。
+        expect(findCollectionTraversal(journal, 4, from, null)).toBe(4);
     });
 });

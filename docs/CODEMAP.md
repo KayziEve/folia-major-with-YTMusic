@@ -15,7 +15,7 @@
 | --- | --- |
 | components | 512+ |
 | test/dev | 512+ |
-| library | 128+ |
+| library | 256+ |
 | services | 128+ |
 | utils | 128+ |
 | backend/electron | 64+ |
@@ -36,26 +36,32 @@
 | 512+ | `src/types.ts` |
 | 128+ | `src/types/onlineMusic.ts` |
 | 64+ | `src/components/command-palette/types.ts` |
+| 64+ | `src/components/visualizer/colorMix.ts` |
+| 64+ | `src/library/core/contracts/suite.ts` |
 | 64+ | `src/types/ponder.ts` |
 | 64+ | `src/utils/appPlaybackGuards.ts` |
 | 32+ | `dev/probes/definition.ts` |
 | 32+ | `src/components/ponder/surfaces/ponderSurfaceGeometry.ts` |
-| 32+ | `src/components/visualizer/colorMix.ts` |
 | 32+ | `src/components/visualizer/definition.ts` |
+| 32+ | `src/components/wall/wallSlots.ts` |
 | 32+ | `src/i18n/config.ts` |
+| 32+ | `src/library/core/contracts/account.ts` |
 | 32+ | `src/library/core/contracts/collection.ts` |
 | 32+ | `src/library/core/contracts/directory.ts` |
-| 32+ | `src/library/core/contracts/suite.ts` |
+| 32+ | `src/library/core/contracts/homeModel.ts` |
+| 32+ | `src/library/suites/bravais/bravaisLayer.ts` |
 | 32+ | `src/mods/folium/contract.ts` |
 | 32+ | `src/services/db.ts` |
 | 32+ | `src/services/onlineMusic/omni.ts` |
 | 32+ | `src/services/onlineMusic/songMetadata.ts` |
 | 32+ | `src/stores/useAppViewStore.ts` |
+| 32+ | `src/stores/useAudioSettingsStore.ts` |
 | 32+ | `src/stores/usePlaybackStore.ts` |
 | 32+ | `src/stores/useStatusMessageStore.ts` |
 | 32+ | `src/stores/useThemeSettingsStore.ts` |
 | 32+ | `src/types/localLibrary.ts` |
 | 32+ | `src/utils/fontStacks.ts` |
+| 32+ | `src/utils/lyrics/graphemeTiming.ts` |
 | 32+ | `src/utils/lyrics/parserCore.ts` |
 | 32+ | `src/utils/lyrics/renderHints.ts` |
 | 32+ | `test/component/fixtures.ts` |
@@ -73,6 +79,8 @@
 - `dev/probes/automixModelReminder.probe.tsx`
 - `dev/probes/automixModels.probe.tsx`
 - `dev/probes/automixTransitionSwitches.probe.tsx`
+- `dev/probes/bravaisKinds.probe.tsx`
+- `dev/probes/bravaisPerf.probe.tsx`
 - `dev/probes/collectionMorph.probe.tsx`
 - `dev/probes/coverSizeAudit.probe.tsx`
 - `dev/probes/fmTab.probe.tsx`
@@ -99,6 +107,7 @@
 - `dev/probes/playbackLyricsSettings.probe.tsx`
 - `dev/probes/playerBarModButtons.probe.tsx`
 - `dev/probes/playerBottomBar.probe.tsx`
+- `dev/probes/ponderBravaisSeam.probe.tsx`
 - `dev/probes/ponderHint.probe.tsx`
 - `dev/probes/ponderPageSurfaces.probe.tsx`
 - `dev/probes/providerConnect.probe.tsx`
@@ -113,6 +122,8 @@
 ### `src/components/ponder/ponderRegistry.ts`
 
 - `src/components/ponder/targets/audioEqualizer.target.ts`
+- `src/components/ponder/targets/bravaisSeam.target.ts`
+- `src/components/ponder/targets/bravaisWall.target.ts`
 - `src/components/ponder/targets/commandPalette.target.ts`
 - `src/components/ponder/targets/customShortcutSettings.target.ts`
 - `src/components/ponder/targets/foliaDesktop.target.ts`
@@ -208,6 +219,7 @@
 
 ### `src/library/registry.ts`
 
+- `src/library/suites/bravais/entry.ts`
 - `src/library/suites/grid/entry.ts`
 - `src/library/suites/tui/entry.ts`
 

@@ -2,7 +2,7 @@
 // 本地只读回放：对历史 issue 跑一遍 triage 决策，与维护者的真实处理结果对比，用于上线前确认误关为 0。
 //
 //   node .github/scripts/triage/bin/replay.mjs --issue 514
-//   node .github/scripts/triage/bin/replay.mjs --range 440-523 [--no-llm] [--save-fixtures] [--json]
+//   node .github/scripts/triage/bin/replay.mjs --range 440-523 [--no-llm] [--save-fixtures] [--json] [--show-comments]
 //
 // GitHub token 取 GITHUB_TOKEN，没有就用 `gh auth token`；DeepSeek key 取 DEEPSEEK_API_KEY，没有就自动 --no-llm。
 
@@ -79,6 +79,8 @@ for (const number of numbers) {
         addLabels: result.plan.labelsAdd,
         blocked: result.plan.blocked.map(item => item.reason),
         llm: result.llm.status,
+        diagnosis: result.diagnosis ? { source: result.diagnosis.source, causes: result.diagnosis.causes, llm: result.diagnosisLlm?.status ?? null } : null,
+        comments: [result.plan.upsert?.body, ...result.plan.comments].filter(Boolean),
         verdict: result.plan.close ? (actualClosed ? 'agree-close' : 'FALSE-CLOSE') : actualClosed ? 'missed' : 'agree-keep',
     });
 
@@ -100,7 +102,8 @@ if (flag('--json')) {
     console.log(JSON.stringify(rows, null, 2));
 } else {
     for (const row of rows) {
-        console.log(`#${row.number}\t${row.verdict}\tpredicted=${row.predictedClose ?? '-'}\tactual=${row.actual}\tllm=${row.llm}\t+[${row.addLabels.join(', ')}]\tblocked=[${row.blocked.join(', ')}]\t${row.title}`);
+        console.log(`#${row.number}\t${row.verdict}\tpredicted=${row.predictedClose ?? '-'}\tactual=${row.actual}\tllm=${row.llm}\t+[${row.addLabels.join(', ')}]\tblocked=[${row.blocked.join(', ')}]${row.diagnosis ? `\tdiag=${row.diagnosis.source}:[${row.diagnosis.causes.join(', ')}]` : ''}\t${row.title}`);
+        if (flag('--show-comments')) for (const body of row.comments) console.log(`\n${body}\n`);
     }
     const count = verdict => rows.filter(row => row.verdict === verdict).length;
     console.log(`\n共 ${rows.length} 条：一致关闭 ${count('agree-close')}，误关 ${count('FALSE-CLOSE')}，漏判 ${count('missed')}，一致保留 ${count('agree-keep')}`);
