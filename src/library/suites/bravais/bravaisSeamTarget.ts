@@ -1,4 +1,9 @@
-import { BRAVAIS_SEAM_FULL_WIDTH } from './bravaisConstants';
+import {
+    BRAVAIS_SEAM_FULL_WIDTH,
+    BRAVAIS_SEAM_POSTER_MAX_WIDTH,
+    BRAVAIS_SEAM_POSTER_MIN_WIDTH,
+    BRAVAIS_SEAM_POSTER_VIEWPORT_RATIO,
+} from './bravaisConstants';
 import type { BravaisLayer, BravaisLayerSurface } from './bravaisLayer';
 import {
     resolveSeamOpenWidth,
@@ -28,7 +33,13 @@ export const resolvePanelWidth = (viewportWidth: number) => Math.max(
     Math.min(BRAVAIS_PANEL_MAX_WIDTH, viewportWidth - BRAVAIS_PANEL_VIEWPORT_MARGIN),
 );
 
-export type BravaisSeamContentVariant = BravaisSeamVariant | 'panel' | 'form' | 'search' | BravaisAccountSeamVariant;
+/** 歌手页海报的宽度：视口的 46%，夹在 520–680 之间。 */
+export const resolvePosterWidth = (viewportWidth: number) => Math.round(Math.max(
+    BRAVAIS_SEAM_POSTER_MIN_WIDTH,
+    Math.min(BRAVAIS_SEAM_POSTER_MAX_WIDTH, viewportWidth * BRAVAIS_SEAM_POSTER_VIEWPORT_RATIO),
+));
+
+export type BravaisSeamContentVariant = BravaisSeamVariant | 'panel' | 'form' | 'search' | 'poster' | BravaisAccountSeamVariant;
 
 /** B10：账户的登录态 / 确认态（不属于任何一层，见 bravaisAccountStore）。 */
 export type BravaisAccountSeamVariant = 'login' | 'confirm';
@@ -43,6 +54,8 @@ export type BravaisSeamTargetInput = {
     filterOpen?: boolean;
     /** B9：首页的全局搜索框开着。 */
     searchOpen?: boolean;
+    /** 这一层可以画海报（歌手页、专辑页，无限拼贴；过滤生效的有限拼贴不行）。由 stage 判定，这里不看 surface。 */
+    poster?: boolean;
 };
 
 /** 这一刻的生效等级：过滤框、面板、表单都要求完整的缝。 */
@@ -62,6 +75,10 @@ export const resolveSeamTarget = (input: BravaisSeamTargetInput): { width: numbe
         return { width: BRAVAIS_SEAM_FULL_WIDTH, variant: 'search' };
     }
     const level = resolveEffectiveSeamLevel(input);
+    // 歌手海报只在用户选的完整等级上：过滤框的临时展开、面板、表单都回到普通的缝（它们排在前面或改写了等级）。
+    if (input.poster && input.level === 'full' && !input.filterOpen) {
+        return { width: resolvePosterWidth(input.viewportWidth), variant: 'poster' };
+    }
     return { width: resolveSeamOpenWidth(input.surface, level), variant: resolveSeamVariant(input.surface, level) };
 };
 
@@ -69,6 +86,7 @@ export const resolveSeamTarget = (input: BravaisSeamTargetInput): { width: numbe
 export const resolveVariantWidth = (variant: BravaisSeamContentVariant, viewportWidth: number) => {
     if (variant === 'form' || variant === 'search' || variant === 'login' || variant === 'confirm') return BRAVAIS_SEAM_FULL_WIDTH;
     if (variant === 'panel') return resolvePanelWidth(viewportWidth);
+    if (variant === 'poster') return resolvePosterWidth(viewportWidth);
     return seamVariantWidth(variant);
 };
 

@@ -31,20 +31,7 @@ export default {
     "crumbPlayer": "Sedang Diputar",
     "tools": "Alat dinding",
     "toolsLocate": "Temukan lagu yang diputar",
-    "toolsLocateShort": "Temukan",
-    "toolsShuffle": "Acak antrean",
-    "toolsShuffleShort": "Acak",
-    "toolsShuffleUnavailable": "Perlu dua lagu atau lebih di antrean (tidak di FM Pribadi)",
-    "toolsTheme": "Buat tema untuk lagu ini",
-    "toolsThemeShort": "Tema",
-    "toolsThemeBusy": "Membuat tema…",
-    "toolsThemeBusyShort": "Membuat…",
-    "toolsThemeUnavailable": "Perlu lagu yang diputar dengan lirik (atau musik instrumental)",
     "toolsLattice": "Buka Lattice",
-    "toolsLatticeShort": "Lattice",
-    "toolsMute": "Bisukan",
-    "toolsUnmute": "Bunyikan",
-    "toolsMuted": "Dibisukan",
     "toolsAppearance": "Tampilan dinding",
     "helpMove": "Pindahkan fokus (dinding atau strip info)",
     "helpOpen": "Buka kartu lagu atau koleksi",
@@ -61,6 +48,36 @@ export default {
     "helpSearch": "Cari di platform online (beranda)",
     "filterPlaceholder": "Saring halaman ini",
     "kind": {"track": "Lagu", "playlist": "Playlist", "album": "Album", "artist": "Artis", "folder": "Folder", "feed": "Radio"}
+  },
+  "wallTools": {
+    "shuffle": "Acak antrean",
+    "shuffleUnavailable": "Perlu dua lagu atau lebih di antrean (tidak di FM Pribadi)",
+    "shuffleUnavailableInStage": "Stage eksternal sedang memutar: antrean tidak bisa diacak",
+    "theme": "Buat tema untuk lagu ini",
+    "themeBusy": "Membuat tema…",
+    "themeUnavailable": "Perlu lagu yang diputar dengan lirik (atau musik instrumental)",
+    "mute": "Bisukan",
+    "unmute": "Bunyikan",
+    "muted": "Dibisukan",
+    "queue": "Antrean putar",
+    "queueShow": "Tampilkan antrean putar",
+    "queueHide": "Sembunyikan antrean putar",
+    "queueUnavailableInFm": "FM Pribadi tidak punya antrean yang bisa diubah",
+    "queueStageReadOnly": "Stage eksternal sedang memutar: Anda bisa memilih lagu, tetapi tidak mengubah antrean",
+    "queueIsland": "Antrean putar",
+    "queueCount_one": "Antrean putar · {{count}} lagu",
+    "queueCount_other": "Antrean putar · {{count}} lagu",
+    "queueClear": "Kosongkan antrean",
+    "queueClearConfirm": "Klik sekali lagi untuk mengosongkan",
+    "queueSave": "Simpan sebagai playlist lokal",
+    "queueSaved": "Disimpan sebagai playlist lokal “{{name}}”",
+    "queueSaveFailed": "Playlist tidak bisa disimpan",
+    "queueDragHandle": "Seret untuk mengurutkan",
+    "queueMoved": "Dipindah ke posisi {{position}}",
+    "openPlayer": "Buka pemutar",
+    "openPlayerUnavailable": "Belum ada lagu yang diputar",
+    "goHome": "Ke Beranda",
+    "wallSection": "Dinding"
   },
   "libraryBravaisHome": {
     "hide": "Sembunyikan",
@@ -354,6 +371,19 @@ export default {
     "loginExpired": "Login kedaluwarsa. Silakan login lagi",
     "songPreviewOnly": "Hanya pratinjau tersedia. Masuk dengan akun yang dapat memutar lagu lengkap.",
     "songRegionRestricted": "Pemutaran hanya tersedia di Tiongkok daratan. Periksa koneksi jaringan Anda.",
+    "songTemporarilyUnavailable": "Lagu ini belum dapat diputar saat ini",
+    "songTemporarilyUnavailableSignInHint": "Lagu ini belum dapat diputar saat ini. Masuk ke akun mungkin dapat membantu.",
+    "songNetworkFailed": "Gagal terhubung untuk memuat lagu ini. Periksa jaringan Anda lalu coba lagi.",
+    "songRequestTimedOut": "Waktu memuat lagu ini habis. Silakan coba lagi.",
+    "songRetrying": "Koneksi gagal. Mencoba lagi…",
+    "songServiceUnavailable": "Layanan musik sedang tidak tersedia. Silakan coba lagi nanti.",
+    "songServiceNotConfigured": "Sumber musik ini tidak tersedia di sini (belum dikonfigurasi atau memerlukan aplikasi desktop).",
+    "songRateLimited": "Terlalu banyak permintaan. Coba lagi dalam {{seconds}} detik.",
+    "songRateLimitedNoWait": "Terlalu banyak permintaan. Silakan coba lagi nanti.",
+    "songLoginRequired": "Masuk ke akun untuk memutar lagu ini.",
+    "songMembershipRequired": "Lagu ini memerlukan keanggotaan untuk diputar.",
+    "songPurchaseRequired": "Lagu ini harus dibeli sebelum dapat diputar.",
+    "songEntitlementRequired": "Akun Anda tidak dapat memutar lagu ini (mungkin memerlukan keanggotaan atau pembelian).",
     "loggedOut": "Berhasil logout",
     "clickToPlay": "Klik putar untuk mulai",
     "liked": "Ditambahkan ke Lagu Disukai",
@@ -1233,7 +1263,6 @@ export default {
     "latticeLightsOn": "Lampu nyala",
     "latticeLightsOff": "Lampu mati",
     "latticeTools": "Alat Lattice",
-    "latticeOpenQueueCommand": "Buka perintah antrean",
     "latticeHelp": "Panduan pengoperasian",
     "latticeHelpPoster": "Tekan Enter untuk membuka lagu terpilih, lalu Enter lagi untuk memutarnya",
     "latticeHelpReturn": "Kembali",
@@ -1288,7 +1317,13 @@ export default {
     "qrTipsTitle": "Coba dulu",
     "qrTipRestart": "Mulai ulang Folia, lalu pindai lagi.",
     "qrTipSwitchNetwork": "Ganti ke jaringan lain (misalnya hotspot ponsel), lalu mulai ulang Folia.",
+    "qrDeviceLimit": "Akun QQ Music ini sudah mencapai batas perangkat yang masuk. Hapus perangkat lama terlebih dahulu.",
+    "qrDeviceLimitTipsTitle": "Hapus perangkat yang masuk terlebih dahulu",
+    "qrDeviceLimitTipRemove": "Buka aplikasi resmi QQ Music, masuk ke Pengaturan → Manajemen Perangkat (paling bawah di Pengaturan), lalu hapus perangkat yang tidak lagi dipakai.",
+    "qrDeviceLimitTipQuota": "QQ Music membatasi jumlah perangkat yang masuk bersamaan: 1 untuk akun gratis, 3 untuk Green Diamond, 5 untuk Super VIP.",
+    "qrDeviceLimitTipRescan": "Setelah itu kembali ke Folia dan pindai ulang.",
     "qrDiagnosticsToggle": "Masih belum berhasil? Kirimkan info diagnostik kepada kami",
+    "qrDiagnosticsToggleElsewhere": "Masih belum berhasil? Lihat info diagnostik",
     "qrDiagnosticsPrompt": "Salin info diagnostik dan kirimkan kepada kami agar penyebabnya bisa ditemukan.",
     "qrDiagnosticsPromptScanned": "Jika sudah mengonfirmasi di ponsel tetapi tetap belum masuk, salin info diagnostik dan kirimkan kepada kami agar penyebabnya bisa ditemukan.",
     "qrDiagnosticsDisclosure": "Info diagnostik berisi versi aplikasi dan sistem, adaptor jaringan dan alamat IP, pengaturan proxy, catatan permintaan login beserta teks galat aslinya, dan hasil pemeriksaan jaringan. Tidak berisi kata sandi, cookie, atau token.",
@@ -1297,6 +1332,8 @@ export default {
     "qrDiagnosticsCopyFailed": "Gagal menyalin",
     "qrDiagnosticsReport": "Laporkan di GitHub",
     "qrDiagnosticsPasteHint": "Tempel info diagnostik yang disalin Folia di sini, dan jelaskan singkat apa yang terjadi (jaringan, apakah proxy aktif, dll.).",
+    "qrReportWebDeployment": "Ini masalah pada deployment web ini: situs ini belum mengatur API platform musik, atau tidak bisa menjangkaunya. Berikan info diagnostik kepada pihak yang men-deploy situs ini; jika itu kamu, periksa VITE_*_API_BASE sesuai dokumentasi deployment lalu build ulang. Jika hanya ingin memakai Folia, unduh aplikasi desktop resmi.",
+    "qrReportUnofficialBuild": "Kamu tidak memakai build resmi Folia maupun cara self-hosting yang terdokumentasi (mungkin dikemas ulang atau dimodifikasi orang lain). Laporkan masalah kepada pihak yang menyediakannya. Build resmi ada di GitHub Releases.",
     "qrSelfCheckTitle": "Pemeriksaan otomatis",
     "qrSelfCheckRunning": "Memeriksa jaringan dan layanan lokal…",
     "qrSelfCheckFailed": "Pemeriksaan otomatis tidak selesai: {{message}}",
@@ -2392,6 +2429,9 @@ export default {
     "useSystemProxyAIDesc": "Rutekan permintaan AI secara ketat melalui proxy sistem.",
     "geminiApiKey": "Kunci API Gemini",
     "openaiApiKey": "Kunci API OpenAI",
+    "aiApiKeySavedPlaceholder": "Tersimpan (kosongkan untuk mempertahankan)",
+    "aiApiKeySavedDesc": "Kunci disimpan terenkripsi di perangkat ini dan tidak ditampilkan lagi. Masukkan kunci baru lalu simpan untuk menggantinya.",
+    "aiApiKeyClear": "Hapus",
     "openaiApiUrl": "URL API OpenAI",
     "openaiApiModel": "Model OpenAI",
     "openaiApiModelDesc": "Diperlukan oleh banyak penyedia kompatibel OpenAI. Contoh: gpt-5.6-luna, gpt-4.1-mini, deepseek-v4-flash.",
@@ -2401,7 +2441,7 @@ export default {
     "openaiApiStreamDesc": "Aktifkan hanya jika penyedia mewajibkan streaming; hasil tetap diurai setelah diterima sepenuhnya.",
     "aiTestConnection": "Uji koneksi",
     "aiTestRunning": "Menguji...",
-    "aiTestConnectionDesc": "Mengirim \"hello\" ke endpoint dengan nilai yang ada di formulir saat ini (tidak perlu disimpan dulu).",
+    "aiTestConnectionDesc": "Mengirim \"hello\" ke endpoint dengan nilai yang ada di formulir saat ini (tidak perlu disimpan dulu). Jika kolom kunci kosong, kunci yang tersimpan akan dipakai.",
     "aiTestSuccess": "Terhubung",
     "aiTestFailed": "Koneksi gagal",
     "aiTestDuration": "Waktu",
@@ -2640,6 +2680,8 @@ export default {
     "linuxManualUpdateNotice": "Linux tidak mendukung pembaruan otomatis. Unduh paket deb, rpm, atau tar.gz lengkap untuk memperbarui secara manual; hanya instalasi AUR stabil yang boleh memperbarui folia-major-bin melalui pengelola paket.",
     "manualUpdateNotice": "Catatan: Pembaruan otomatis tidak didukung di platform ini. Silakan unduh paket secara manual.",
     "versionCopiedHint": "Klik untuk menyalin info versi",
+    "unofficialBuildNotice": "Build tidak resmi: versi ini tidak dibangun oleh CI repositori Folia maupun di-deploy lewat cara self-hosting yang terdokumentasi (Docker, Vercel, Cloudflare), dan mungkin telah dimodifikasi atau tidak memiliki layanan backend. Hubungi pihak yang menyediakannya terlebih dahulu; build resmi ada di GitHub Releases.",
+    "selfHostedBuildNotice": "Self-hosted: dibangun dan di-hosting oleh pihak yang men-deploy, termasuk layanan backend platform musik. Hubungi pihak tersebut terlebih dahulu, dan laporkan di GitHub jika memang masalah Folia.",
     "versionCopiedToast": "Disalin",
     "stageConnected": "Stage terhubung",
     "nowPlayingConnectedStatus": "Now Playing terhubung",
@@ -2867,6 +2909,91 @@ export default {
         "description": "Setelah masuk, playlist pribadi buatan Anda kini dapat memuat lagu dengan paging sungguhan. Backend yang di-host sendiri harus memakai qq-music-api 3.1.2 atau lebih baru; backend lama beralih otomatis, dan playlist yang tidak dapat dibaca kini menjelaskan bahwa playlist itu tidak publik, alih-alih tampil kosong tanpa keterangan."
       }
     },
+    "v0_7_176": {
+      "intro": "0.7.176 menggabungkan pembaruan 0.7.18 dan 0.7.19 dengan integrasi YouTube Music desktop. Rilis ini menghadirkan poster artis dan album Bravais, alasan kegagalan pemutaran yang lebih jelas, segmentasi lirik Tionghoa dan Jepang yang lebih alami, startup web offline, kunci AI desktop terenkripsi, dan banyak lagi.",
+      "artistPoster": {
+        "title": "Halaman Artis Menjadi Poster",
+        "description": "Strip info lengkap di halaman artis Bravais kini digambar sebagai poster bergaya Tempera yang tersemat di kiri dinding. Tata letaknya tetap untuk tiap artis, warnanya diambil dari tiga album terpopuler artis tersebut, dan nama menyesuaikan lebar tanpa meluap. Dinding album di kanan ikut miring, dan Anda tetap bisa menyeret dan menggulir saat dinding miring."
+      },
+      "albumPoster": {
+        "title": "Poster Album dan Mozaik Sampul",
+        "description": "Halaman album juga mendapat poster: sampul ditempel di atas kertas bertitik, judul besar dengan bayangan berlapis, serta artis, tahun, dan jumlah lagu, lengkap dengan animasi masuk. Buka album dari halaman artis dan sampulnya terbang dari ubin yang Anda klik ke poster, lalu terbang kembali saat Anda kembali. Di dinding sebelahnya, album dengan satu sampul disusun menjadi satu sampul besar di seluruh lagu; jika album bercampur sampul single, sampul yang berulang dipotong menjadi pecahan yang kembali berwarna penuh saat diarahkan kursor atau sedang diputar."
+      },
+      "playbackFailure": {
+        "title": "Kegagalan Putar Kini Ada Alasannya",
+        "description": "Lagu online yang gagal diputar tidak lagi selalu ditandai \"lagu dihapus\". Folia kini membedakan lagu yang dihapus, jaringan terputus atau waktu habis, gangguan layanan atau batas permintaan, lagu yang memerlukan login, keanggotaan, atau pembelian, serta pembatasan wilayah. Hanya lagu yang benar-benar dihapus yang menghitung mundur ke lagu berikutnya dan mencari versi lain; saat jaringan terputus, pemutaran berhenti dan antrean tetap utuh sehingga Anda bisa mencoba lagi atau melewati; kasus login, keanggotaan, dan pembelian hanya ditampilkan tanpa dicoba berulang kali. Berlaku untuk NetEase, QQ Music, KuGou, dan Bodian."
+      },
+      "lyricSegmenter": {
+        "title": "Pemotongan Kata Tionghoa dan Jepang Lebih Wajar",
+        "description": "Tempera, Sonnet, dan mode lain yang menata lirik per kata kini memakai pemotong kata bawaan baru, icu-folia. Bahasa Tionghoa tidak lagi terpotong-potong (idiom dan kata tetap utuh, partikel seperti 的 dan 了 menempel pada kata sebelumnya), dan bahasa Jepang dipotong per frasa yang wajar. Tempera juga tidak lagi menyebar kata pendek yang seharusnya bersama ke bidikan yang berbeda. Pemotongan kata yang Anda simpan sendiri tetap diutamakan, dan kamusnya hanya dimuat saat diperlukan."
+      },
+      "offlineStartup": {
+        "title": "Versi Web Bisa Dibuka Tanpa Jaringan",
+        "description": "Memperbaiki versi web / PWA yang gagal dimuat saat disegarkan tanpa koneksi jaringan. Sampul lokal juga tampil saat offline, dan pada kunjungan pertama tidak lagi menunggu cache latar selesai diunduh. Ikon yang dipakai tema kini dimuat sesuai kebutuhan, sehingga lebih sedikit yang diunduh saat aplikasi dimulai."
+      },
+      "stabilityFixes": {
+        "title": "Lebih Stabil di Segala Sisi",
+        "description": "Di Android, membuka Opsi atau lapisan lain di dinding Bravais atau Lattice tidak lagi memperlihatkan kilasan dinding di bawahnya. Memperbaiki crash sesekali saat mengubah ukuran jendela ketika Tempera sedang diputar. Latar Sora berhenti menggambar saat dijeda, dan bintangnya diam dalam mode statis. Jendela catatan rilis yang muncul saat aplikasi dimulai kini bisa ditutup dengan Esc."
+      }
+    ,
+      "ytmusicDesktop": {
+        "title": "YouTube Music di Aplikasi Desktop",
+        "description": "Hubungkan akun YouTube Music untuk mencari dan memutar lagu serta melihat playlist Anda. Lirik YouTube Music belum tersedia dalam integrasi ini."
+      }},
+    "v0_7_19": {
+      "intro": "0.7.19 mengubah halaman artis dan album di Bravais menjadi poster bergaya Tempera. Saat lagu online gagal diputar, Folia kini menyebutkan alasan sebenarnya, tidak lagi selalu menyebutnya dihapus; visualizer per kata seperti Tempera memotong lirik Tionghoa dan Jepang dengan lebih wajar; dan versi web kembali bisa dibuka tanpa jaringan.",
+      "artistPoster": {
+        "title": "Halaman Artis Menjadi Poster",
+        "description": "Strip info lengkap di halaman artis Bravais kini digambar sebagai poster bergaya Tempera yang tersemat di kiri dinding. Tata letaknya tetap untuk tiap artis, warnanya diambil dari tiga album terpopuler artis tersebut, dan nama menyesuaikan lebar tanpa meluap. Dinding album di kanan ikut miring, dan Anda tetap bisa menyeret dan menggulir saat dinding miring."
+      },
+      "albumPoster": {
+        "title": "Poster Album dan Mozaik Sampul",
+        "description": "Halaman album juga mendapat poster: sampul ditempel di atas kertas bertitik, judul besar dengan bayangan berlapis, serta artis, tahun, dan jumlah lagu, lengkap dengan animasi masuk. Buka album dari halaman artis dan sampulnya terbang dari ubin yang Anda klik ke poster, lalu terbang kembali saat Anda kembali. Di dinding sebelahnya, album dengan satu sampul disusun menjadi satu sampul besar di seluruh lagu; jika album bercampur sampul single, sampul yang berulang dipotong menjadi pecahan yang kembali berwarna penuh saat diarahkan kursor atau sedang diputar."
+      },
+      "playbackFailure": {
+        "title": "Kegagalan Putar Kini Ada Alasannya",
+        "description": "Lagu online yang gagal diputar tidak lagi selalu ditandai \"lagu dihapus\". Folia kini membedakan lagu yang dihapus, jaringan terputus atau waktu habis, gangguan layanan atau batas permintaan, lagu yang memerlukan login, keanggotaan, atau pembelian, serta pembatasan wilayah. Hanya lagu yang benar-benar dihapus yang menghitung mundur ke lagu berikutnya dan mencari versi lain; saat jaringan terputus, pemutaran berhenti dan antrean tetap utuh sehingga Anda bisa mencoba lagi atau melewati; kasus login, keanggotaan, dan pembelian hanya ditampilkan tanpa dicoba berulang kali. Berlaku untuk NetEase, QQ Music, KuGou, dan Bodian."
+      },
+      "lyricSegmenter": {
+        "title": "Pemotongan Kata Tionghoa dan Jepang Lebih Wajar",
+        "description": "Tempera, Sonnet, dan mode lain yang menata lirik per kata kini memakai pemotong kata bawaan baru, icu-folia. Bahasa Tionghoa tidak lagi terpotong-potong (idiom dan kata tetap utuh, partikel seperti 的 dan 了 menempel pada kata sebelumnya), dan bahasa Jepang dipotong per frasa yang wajar. Tempera juga tidak lagi menyebar kata pendek yang seharusnya bersama ke bidikan yang berbeda. Pemotongan kata yang Anda simpan sendiri tetap diutamakan, dan kamusnya hanya dimuat saat diperlukan."
+      },
+      "offlineStartup": {
+        "title": "Versi Web Bisa Dibuka Tanpa Jaringan",
+        "description": "Memperbaiki versi web / PWA yang gagal dimuat saat disegarkan tanpa koneksi jaringan. Sampul lokal juga tampil saat offline, dan pada kunjungan pertama tidak lagi menunggu cache latar selesai diunduh. Ikon yang dipakai tema kini dimuat sesuai kebutuhan, sehingga lebih sedikit yang diunduh saat aplikasi dimulai."
+      },
+      "stabilityFixes": {
+        "title": "Lebih Stabil di Segala Sisi",
+        "description": "Di Android, membuka Opsi atau lapisan lain di dinding Bravais atau Lattice tidak lagi memperlihatkan kilasan dinding di bawahnya. Memperbaiki crash sesekali saat mengubah ukuran jendela ketika Tempera sedang diputar. Latar Sora berhenti menggambar saat dijeda, dan bintangnya diam dalam mode statis. Jendela catatan rilis yang muncul saat aplikasi dimulai kini bisa ditutup dengan Esc."
+      }
+    },
+    "v0_7_18": {
+      "intro": "0.7.18 menambahkan antrean putar yang bisa langsung diatur dari alat dinding di Bravais dan Lattice, dan kedua dinding kini memakai panel alat yang sama. Beberapa visualizer lirik lebih hemat sumber daya, perpindahan antar lagu lokal lebih mulus, login QR QQ Music menjelaskan langkahnya saat batas perangkat tercapai, dan aplikasi desktop kini menyimpan kunci AI secara terenkripsi.",
+      "queueIsland": {
+        "title": "Atur Antrean dari Dinding",
+        "description": "Buka Alat dinding di pojok kanan bawah Bravais atau Lattice lalu pilih Antrean putar untuk menampilkan antrean di atas panel. Klik lagu untuk memutarnya tanpa pindah halaman, seret pegangan untuk mengurutkan, arahkan kursor untuk putar berikutnya, pindah ke akhir, atau hapus, simpan antrean sebagai playlist lokal, atau kosongkan dengan konfirmasi dua langkah. Keyboard: ↑↓ untuk berpindah, Alt+↑↓ untuk menggeser, Delete untuk menghapus. Tidak tersedia di FM Pribadi; saat Stage eksternal sedang memutar, Anda hanya bisa memilih lagu."
+      },
+      "wallTools": {
+        "title": "Satu Panel Alat untuk Kedua Dinding",
+        "description": "Alat dinding di Bravais dan Lattice kini memakai tata letak yang sama: satu baris enam tombol cepat (temukan lagu yang diputar, acak antrean, buat tema, antrean putar, buka Lattice atau Beranda, buka pemutar), lalu volume, tampilan dinding, warna poster, dan pencahayaan. Panelnya lebih ringkas, dan baris perintah antrean lama di Lattice digantikan oleh antrean."
+      },
+      "visualizerPerf": {
+        "title": "Visualizer Lirik Lebih Ringan",
+        "description": "Sonnet, Tempera, Lumiere, Mindscape, Claddagh, Monet, Pendolo, dan latar Latent kini jauh lebih sedikit mengulang perhitungan di tiap frame. Mesin jam Pendolo digambar dengan WebGL2, dan mengubah pengaturan Sonnet tidak lagi membangun ulang kanvasnya. Konteks grafis dilepas saat berganti mode, sehingga bolak-balik berganti mode tidak lagi menyingkirkan visualizer lain."
+      },
+      "localPlayback": {
+        "title": "Ganti Lagu Lokal Lebih Mulus",
+        "description": "Berpindah ke lagu lokal berikutnya tidak lagi tersendat: sampul dan hasil pencocokan online yang sudah disiapkan langsung dipakai, tanpa diekstrak dan dicocokkan ulang saat lagu berganti, dan pergantian lagu lebih cepat di pustaka besar."
+      },
+      "qqDeviceLimit": {
+        "title": "Login QQ Menjelaskan Batas Perangkat",
+        "description": "Saat login QR QQ Music gagal karena akun sudah mencapai batas perangkat, panel login kini menyebutkannya dan memandu Anda menghapus perangkat lama (Pengaturan → Manajemen Perangkat di aplikasi QQ Music, lalu pindai lagi), tidak lagi mengarah ke masalah jaringan. Di versi web, hal ini untuk sementara hanya terdeteksi pada login QR WeChat."
+      },
+      "aiKeySecure": {
+        "title": "Kunci AI Terenkripsi di Desktop",
+        "description": "Aplikasi desktop kini menyimpan kunci Gemini / OpenAI secara terenkripsi dengan penyimpanan aman sistem, dan kunci teks biasa dari versi lama dipindahkan saat aplikasi dimulai. Kunci yang tersimpan tidak ditampilkan lagi: kosongkan kolom untuk mempertahankannya, ketik kunci baru untuk menggantinya, atau gunakan tombol Hapus tersendiri. Uji koneksi dengan kolom kosong memakai kunci yang tersimpan."
+      }
+    },
     "v0_7_175": {
       "intro": "0.7.175 menggabungkan pembaruan besar Spica dari 0.7.17 dengan integrasi YouTube Music di desktop dan navigasi keyboard command palette yang lebih baik.",
       "bravais": {
@@ -2902,6 +3029,7 @@ export default {
         "description": "Saat berpindah dengan tombol panah di command palette, daftar bergulir agar hasil terpilih tetap terlihat."
       }
     },
+
     "v0_7_16": {
       "intro": "0.7.16 memindahkan lirik AMLL ke API resmi, menemukan jauh lebih banyak lirik AMLL untuk lagu QQ Music, dan memungkinkan pencocokan manual mencari langsung di AMLL. Rilis ini juga menambahkan perpindahan tab beranda dengan Tab serta memperbaiki tautan album dan artis yang hilang di hasil pencarian lokal.",
       "amllSource": {
@@ -3329,7 +3457,12 @@ export default {
     "albumsSyncing": "Memuat album {{loaded}} / {{total}}",
     "albumsSyncingOpen": "Memuat album… {{loaded}}",
     "albumsInterrupted": "Album berhenti di {{loaded}}",
-    "panelTitle": "Lagu populer dan album"
+    "panelTitle": "Lagu populer dan album",
+    "posterLabel": "Poster artis",
+    "posterTopSongs": "Lagu populer"
+  },
+  "libraryBravaisAlbum": {
+    "posterLabel": "Poster album"
   },
   "artistGrid": {
     "localArtist": "Artis Lokal: {{artistName}}",
@@ -4358,7 +4491,7 @@ export default {
         "filterType": "Untuk menemukan sesuatu di dinding ini, cukup ketik di dinding: kolom saring muncul di strip, dan dinding menyusut hanya ke yang cocok, tertata di sekitar strip.",
         "filterKeys": "Menyaring tidak pernah online; ia hanya mempersempit dinding di depanmu. Esc mengosongkan teks dulu, lalu mengakhiri pengetikan; ↓ atau Enter memberi fokus ke ubin pertama di dinding.",
         "filterSearch": "Kaca pembesar itulah pencarian online (di beranda bisa juga tekan /): seluruh strip berubah jadi kotak pencarian berbingkai, dan mengirimnya membawamu ke halaman pencarian.",
-        "toolsQuick": "Tombol di pojok kanan bawah adalah alat dinding. Baris atasnya berisi aksi sekali jalan: temukan lagu yang diputar, acak antrean, buat tema untuk lagu ini, buka Lattice.",
+        "toolsQuick": "Tombol di pojok kanan bawah adalah alat dinding. Deretan ikon di atas berisi aksi sekali jalan: temukan lagu yang diputar, acak antrean, buat tema untuk lagu ini, antrean putar, buka Lattice, buka pemutar. Arahkan penunjuk ke ikon untuk melihat nama dan pintasannya.",
         "toolsVolume": "Di tengah ada volume, sama dengan yang di bilah pemutar; klik ikon di kirinya untuk membisukan.",
         "toolsAppearance": "Paling bawah adalah tampilan dinding: transparansi bergiliran di tiga tingkat, ditambah warna poster dan lampu nyala / mati. Geser tombol ini ke kiri untuk langsung membuka palet perintah."
       },
@@ -4529,7 +4662,7 @@ export default {
         "latticeFocusKeys": "Tombol panah mula-mula memilih poster terdekat dari pusat viewport, lalu bergerak secara spasial sambil menjaga target terlihat.",
         "latticePosterOpen": "Klik atau tekan Enter untuk memperluas poster. Lagu aktif menampilkan lirik sinkron; lagu lain menampilkan judul dan tombol putar tanpa mengubah antrean.",
         "latticeChrome": "Poster terbuka berisi putar/jeda, slot ekstra, waktu, geser progres, dan Buka Player. Ketuk lagi atau tekan Spasi untuk menampilkan atau menyembunyikannya.",
-        "latticeTools": "Alat kanan bawah memfokuskan lagu aktif, mengikuti pergantian lagu, membuka antrean, mengatur lampu, dan menampilkan bantuan tombol. Geser ke kiri membuka perintah.",
+        "latticeTools": "Alat kanan bawah sama dengan dinding pustaka: deretan ikon memfokuskan lagu aktif, mengacak antrean, membuat tema, menampilkan antrean putar, kembali ke Beranda, dan membuka pemutar; di bawahnya ada volume, ikuti pergantian lagu, lampu, dan bantuan tombol. Geser ke kiri membuka perintah.",
         "latticeLights": "Lampu mati meredupkan dinding namun mempertahankan strukturnya. Ini hanya tampilan; pemutaran dan urutan antrean tidak berubah.",
         "latticePosterKeys": "Enter atau Spasi memperluas poster tertutup. Setelah terbuka, Enter memutar atau menjeda, Spasi mengubah kontrol, dan Escape menutup serta membersihkan fokus.",
         "latticePageKeys": ": + C memfokuskan lagu aktif, {{mod}} + P membuka antrean, {{mod}} + B kembali, {{mod}} + K membuka jendela perintah; tombol panah memindahkan fokus poster.",

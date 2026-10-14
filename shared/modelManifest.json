@@ -21,9 +21,9 @@
     "",
     "The third entry is not a model - it is the Python the model runs in, and it is the one entry",
     "with a `platforms` block because there is a different archive per OS. A platform missing from",
-    "that block cannot run separation at all: `darwin-x64` is absent because every onnxruntime that",
-    "loads this htdemucs export is arm64-only on macOS, and every version with an Intel Mac wheel",
-    "refuses to load it. That is reported as unsupported rather than offered as a download."
+    "that block cannot run separation at all, and is reported as unsupported rather than offered a",
+    "download. darwin-x64 is in it with an older onnxruntime than the rest (see buildPythonRuntime.mjs);",
+    "it could not be until build/htdemucs_cut_fft.py took the DFTs out of the model."
   ],
   "_manualComment": [
     "Shown only when every mirror has failed. An empty list = the settings page does not offer the",
@@ -72,13 +72,13 @@
     },
     {
       "name": "htdemucs",
-      "file": "htdemucs.onnx",
-      "bytes": 108644650,
-      "sha256": "099b5be76c1f6922124d07f850250f39d1f33f254a0b8cc90f4ec0dfd0912329",
+      "file": "htdemucs-v2.onnx",
+      "bytes": 107902864,
+      "sha256": "a8f542ef3a140d4879156c1b2b0bcad4b29254dcdbf0fd1ec578e3c9cdca925c",
       "enables": "stems",
       "license": "MIT",
       "upstream": "https://huggingface.co/itamiArika/htdemucs-int8-memory",
-      "note": "htdemucs (Meta Research), single-file four-stem variant, fp16 weights, and the upstream repo's 'transparent' re-export, which makes the STFT a real DFT operator instead of an unrolled loop, taking the graph from 24917 nodes to 1556, so ORT's optimizer costs 353MB and 0.65s where the ordinary export cost 4594MB and 3.9s. The one edit that is ours is on top of that: build/htdemucs_halve_segment.py halves the welded-in segment, 343980 to 172032 samples (7.8s to 3.9s): peak working set 789MB to 483MB and 19% FASTER, because attention is quadratic in the token count and the segment sets it. A blind A/B on four rendered transitions could not separate the two segment lengths."
+      "note": "htdemucs (Meta Research), single-file four-stem variant, fp16 weights, and the upstream repo's 'transparent' re-export, which makes the STFT a real DFT operator instead of an unrolled loop, taking the graph from 24917 nodes to 1556, so ORT's optimizer costs 353MB and 0.65s where the ordinary export cost 4594MB and 3.9s. Two edits are ours, on top of that. First, build/htdemucs_halve_segment.py halves the welded-in segment, 343980 to 172032 samples (7.8s to 3.9s): peak working set 789MB to 483MB and 19% FASTER, because attention is quadratic in the token count and the segment sets it. A blind A/B on four rendered transitions could not separate the two segment lengths. Second, build/htdemucs_cut_fft.py takes the STFT's and iSTFT's DFTs out of the graph and htdemucs_runner.py does them in numpy: onnxruntime before 1.25, the only kind with an Intel Mac wheel, cannot load the iSTFT's inverse one-sided DFT, and numpy's real FFT is faster anyway (4.9s to 4.2s per 30s window on onnxruntime 1.29), the stems differing by float rounding (123 dB SNR). A new file name rather than a new htdemucs.onnx, because an app from before cannot run it: overwriting the old name would have failed their downloads on the hash. The old file still resolves as installed (modelPaths.cjs MODEL_FILES)."
     },
     {
       "name": "runtime",
@@ -86,7 +86,7 @@
       "enables": "stems",
       "license": "PSF-2.0 (CPython), MIT (onnxruntime), BSD-3-Clause (numpy)",
       "upstream": "https://github.com/astral-sh/python-build-standalone",
-      "note": "CPython 3.11.16 + onnxruntime 1.29.0 + numpy 2.4.6, built by build/buildPythonRuntime.mjs. Separation runs here rather than in Electron's own onnxruntime-node because `enable_mem_reuse` is bound only by onnxruntime's Python API, and turning it off is what takes one separation from 2543MB to under 500MB. A directory rather than a file: it is unpacked into <models>/runtime/ and the interpreter is <models>/runtime/python.exe, or bin/python3 off Windows.",
+      "note": "CPython 3.11.16 + onnxruntime 1.29.0 (1.23.2 on Intel Macs, the last with a wheel for them, which needs macOS 13) + numpy 2.4.6, built by build/buildPythonRuntime.mjs. Separation runs here rather than in Electron's own onnxruntime-node because `enable_mem_reuse` is bound only by onnxruntime's Python API, and turning it off is what takes one separation from 2543MB to under 500MB. A directory rather than a file: it is unpacked into <models>/runtime/ and the interpreter is <models>/runtime/python.exe, or bin/python3 off Windows.",
       "platforms": {
         "win32-x64": {
           "file": "folia-runtime-win32-x64.zip",
@@ -97,6 +97,11 @@
           "file": "folia-runtime-darwin-arm64.zip",
           "bytes": 44380755,
           "sha256": "f8313150254d699396b4ff4c9289bdd2864ba3268bd137e5aeb17963be318cde"
+        },
+        "darwin-x64": {
+          "file": "folia-runtime-darwin-x64.zip",
+          "bytes": 53911212,
+          "sha256": "b6202a387b5d53c589788fa26b4fcba63ddfb0dd43b19d213bbdbf50280ef23c"
         },
         "linux-x64": {
           "file": "folia-runtime-linux-x64.zip",

@@ -3,6 +3,7 @@ import en from '@/i18n/locales/en';
 import type { LibraryLoginPhase, LibraryNeteaseBackendHealth } from '@/library/core/contracts/account';
 import {
     LOGIN_FAILURE_TIPS,
+    resolveLoginFailureTips,
     LOGIN_METHOD_STEP_COPY,
     canLogoutProvider,
     canRetryLogin,
@@ -16,6 +17,7 @@ import {
     resolveLoginBackendState,
     resolveLoginCopy,
     resolveLoginDiagnosticsPrompt,
+    resolveLoginReportRoute,
     resolveLoginSessionCopy,
     retryAfterMsOf,
     resolveLoginStatusMessage,
@@ -245,6 +247,9 @@ describe('login copy', () => {
         expectKey(LOGIN_FAILURE_TIPS.title.key);
         for (const tip of LOGIN_FAILURE_TIPS.items) expectKey(tip.key);
         expectKey(LOGIN_FAILURE_TIPS.escalation.key);
+        const deviceLimitTips = resolveLoginFailureTips('device-limit');
+        expectKey(deviceLimitTips.title.key);
+        for (const tip of deviceLimitTips.items) expectKey(tip.key);
     });
 
     // 失败后先给简单办法：重启应用；换个网络再重启应用。诊断与反馈收在后面。
@@ -253,7 +258,19 @@ describe('login copy', () => {
             title: { key: 'home.qrTipsTitle' },
             items: [{ key: 'home.qrTipRestart' }, { key: 'home.qrTipSwitchNetwork' }],
             escalation: { key: 'home.qrDiagnosticsToggle' },
+            escalationElsewhere: { key: 'home.qrDiagnosticsToggleElsewhere' },
         });
+    });
+
+    // 登录设备超限是账号侧的原因：重启和换网络没用，简单办法换成清理登录设备的步骤；其余失败不变。
+    it('swaps the tips for removing signed-in devices when the account hit its device limit', () => {
+        expect(resolveLoginFailureTips('device-limit')).toEqual({
+            title: { key: 'home.qrDeviceLimitTipsTitle' },
+            items: [{ key: 'home.qrDeviceLimitTipRemove' }, { key: 'home.qrDeviceLimitTipQuota' }, { key: 'home.qrDeviceLimitTipRescan' }],
+        });
+        for (const failure of ['start-error', 'check-error', 'expired-after-scan', 'connection-reset'] as const) {
+            expect(resolveLoginFailureTips(failure), failure).toBe(LOGIN_FAILURE_TIPS);
+        }
     });
 
     it('hides the status line while choosing a method or when the backend is down', () => {
@@ -297,7 +314,7 @@ describe('login session derivations', () => {
 
     // 后端没拉起来时同样给诊断：报告里有拉起的每一步和错误原文。
     it('offers diagnostics for any failure, including a backend that never started', () => {
-        for (const failure of ['start-error', 'check-error', 'expired-after-scan', 'account-refresh-failed', 'connection-reset'] as const) {
+        for (const failure of ['start-error', 'check-error', 'expired-after-scan', 'account-refresh-failed', 'connection-reset', 'device-limit'] as const) {
             expect(canShowLoginDiagnostics({ failure }), failure).toBe(true);
         }
         expect(canShowLoginDiagnostics({ failure: null })).toBe(false);
@@ -401,7 +418,10 @@ describe('cancel on the phone and backend cooldown', () => {
             .toEqual({ key: 'home.qrRetryCooldown', values: { seconds: 25 } });
         expect(status({ failure: 'check-error', retryCooldownSeconds: null })).toEqual({ key: 'home.loginError' });
         expect(status({ failure: 'connection-reset', retryCooldownSeconds: null })).toEqual({ key: 'home.qrConnectionReset' });
-        for (const key of ['qrCanceledOnDevice', 'qrCanceledOnDeviceCooldown', 'qrRetryCooldown', 'qrConnectionReset']) {
+        expect(status({ failure: 'device-limit', retryCooldownSeconds: null })).toEqual({ key: 'home.qrDeviceLimit' });
+        expect(status({ failure: 'device-limit', retryCooldownSeconds: 20 }))
+            .toEqual({ key: 'home.qrRetryCooldown', values: { seconds: 20 } });
+        for (const key of ['qrCanceledOnDevice', 'qrCanceledOnDeviceCooldown', 'qrRetryCooldown', 'qrConnectionReset', 'qrDeviceLimit']) {
             expect((en as unknown as { home: Record<string, unknown> }).home[key]).toBeTruthy();
         }
     });
@@ -412,5 +432,34 @@ describe('cancel on the phone and backend cooldown', () => {
         expect(retryAfterMsOf(Object.assign(new Error('x'), { retryAfterMs: '25000' }))).toBeNull();
         expect(retryAfterMsOf(new Error('x'))).toBeNull();
         expect(retryAfterMsOf(null)).toBeNull();
+    });
+});
+
+describe('where a login diagnostics report goes', () => {
+    const doneWith = (kind: string) => ({
+        status: 'done' as const,
+        result: {} as never,
+        verdict: { kind, detail: null, proxy: null } as never,
+    });
+    const official = { build: 'official' as const, web: false };
+
+    it('sends official desktop failures to GitHub', () => {
+        expect(resolveLoginReportRoute(official, { failure: 'check-error', selfCheck: null })).toBe('github');
+        expect(resolveLoginReportRoute(official, { failure: 'start-error', selfCheck: null })).toBe('github');
+    });
+
+    it('treats a web build that cannot start or reach its API as a deployment problem', () => {
+        expect(resolveLoginReportRoute({ build: 'unofficial' as const, web: true }, { failure: 'start-error', selfCheck: null })).toBe('web-deployment');
+        expect(resolveLoginReportRoute({ build: 'self-hosted' as const, web: true }, { failure: 'check-error', selfCheck: doneWith('remote-unreachable') })).toBe('web-deployment');
+        expect(resolveLoginReportRoute({ build: 'self-hosted' as const, web: true }, { failure: 'check-error', selfCheck: doneWith('network-ok') })).toBe('github');
+    });
+
+    it('sends self-hosted failures that are not deployment problems to GitHub', () => {
+        expect(resolveLoginReportRoute({ build: 'self-hosted', web: false }, { failure: 'check-error', selfCheck: null })).toBe('github');
+    });
+
+    it('never sends unofficial builds to GitHub', () => {
+        expect(resolveLoginReportRoute({ build: 'unofficial' as const, web: false }, { failure: 'check-error', selfCheck: null })).toBe('unofficial-build');
+        expect(resolveLoginReportRoute({ build: 'unofficial' as const, web: true }, { failure: 'check-error', selfCheck: doneWith('network-ok') })).toBe('unofficial-build');
     });
 });

@@ -19,9 +19,9 @@ const MANUAL = manifest.manual as { links: Array<{ label: string; url: string; c
  * The rows are ENUMERATED here, not folded out of the manifest the way modelStore does it.
  *
  * A probe's job is to name the visual states, and the third row has one the real resolver can only
- * produce on hardware this machine is not: an Intel Mac, where the runtime has no build and the row
- * has to say so instead of offering a download. Re-deriving it here would mean the only way to look
- * at that state is to own the machine that cannot use the feature.
+ * produce on hardware this machine is not: a platform the runtime has no build for (Windows or Linux
+ * on arm64), where the row has to say so instead of offering a download. Re-deriving it here would
+ * mean the only way to look at that state is to own the machine that cannot use the feature.
  */
 type Row = ElectronAutomixModelStatus['models'][number];
 

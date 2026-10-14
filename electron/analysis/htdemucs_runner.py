@@ -20,6 +20,11 @@ side does no DSP and cannot disagree with it about any of the three. Contract:
 The segment length, stem order and window are read off the reference
 implementation (demucs_onnx 0.3.4, `_chunked_separate_single`), the same three
 constants worker.cjs used before this moved out.
+
+The model's STFT and iSTFT are here too, in numpy (`stft_head`, `istft_tail`):
+build/htdemucs_cut_fft.py took both DFTs out of the graph so that onnxruntime
+older than 1.25 - the only kind with an Intel Mac wheel - can load it. A model
+without that cut (one input, one output) still runs, as it did before.
 """
 import sys
 import os
@@ -72,6 +77,67 @@ def make_session(model_path):
     return ort.InferenceSession(model_path, sess_options=so, providers=["CPUExecutionProvider"])
 
 
+_WINDOWS = {}
+
+
+def hann_windows(n):
+    """(analysis, synthesis) windows: periodic Hann (length n, not n-1) over and times sqrt(n) -
+    torch.stft's `normalized=True`, which is what the export baked into its two window constants."""
+    if n not in _WINDOWS:
+        hann = 0.5 - 0.5 * np.cos(2 * np.pi * np.arange(n) / n)
+        _WINDOWS[n] = ((hann / np.sqrt(n)).astype(np.float32), (hann * np.sqrt(n)).astype(np.float32))
+    return _WINDOWS[n]
+
+
+def stft_head(inp, spec_shape):
+    """The ops build/htdemucs_cut_fft.py took off the front of the graph: the mix's one-sided
+    spectrum, [C*F, n/2+1, 2], for one segment [1, C, L]. In order: htdemucs's own reflect pad
+    (3/2 hop on the left; on the right that plus whatever rounds L up to a whole hop), the STFT's
+    centre reflect pad of n/2, F frames of n at hop n/4, the analysis window, and the DFT."""
+    C, L = inp.shape[1], inp.shape[2]
+    n = 2 * (spec_shape[1] - 1)
+    hop = n // 4
+    F = spec_shape[0] // C
+    pad = hop // 2 * 3
+    x = np.pad(inp[0], ((0, 0), (pad, pad + (-L) % hop)), mode='reflect')
+    x = np.pad(x, ((0, 0), (n // 2, n // 2)), mode='reflect')
+    blocks = x.reshape(C, -1, hop)
+    assert blocks.shape[1] == F + 3, f'{blocks.shape[1]} hops for {F} frames'
+    frames = np.concatenate([blocks[:, j:j + F] for j in range(4)], axis=2) * hann_windows(n)[0]
+    spec = np.fft.rfft(frames, axis=2).reshape(C * F, -1)
+    return np.stack([spec.real, spec.imag], axis=-1).astype(np.float32)
+
+
+_NORMS = {}
+
+
+def istft_tail(spec, time):
+    """The ops build/htdemucs_cut_fft.py took off the end of the graph: the spectral branch's
+    inverse STFT, added to the time branch. spec [S*C*F, n/2+1, 2], time [1, S, C, L] -> [1, S, C, L].
+    In order: the inverse real DFT, the synthesis window, overlap-add at hop n/4, the centre trim,
+    division by the overlap-added squared window, and the 3/2-hop trim that undoes stft_head's pad."""
+    _, S, C, L = time.shape
+    n = 2 * (spec.shape[1] - 1)
+    hop = n // 4
+    F = spec.shape[0] // (S * C)
+    length = hop * (F - 1)
+    if (n, F) not in _NORMS:
+        hann = 0.5 - 0.5 * np.cos(2 * np.pi * np.arange(n) / n)
+        norm = np.zeros((F + 3) * hop)
+        for f in range(F):
+            norm[f * hop:f * hop + n] += hann ** 2
+        _NORMS[(n, F)] = norm[n // 2:n // 2 + length].astype(np.float32)
+
+    frames = np.fft.irfft(spec[..., 0] + 1j * spec[..., 1], n=n, axis=1).astype(np.float32)
+    frames = (frames.reshape(S * C, F, n) * hann_windows(n)[1]).reshape(S * C, F, 4, hop)
+    ola = np.zeros((S * C, F + 3, hop), dtype=np.float32)
+    for j in range(4):
+        ola[:, j:j + F] += frames[:, :, j]
+    y = ola.reshape(S * C, -1)[:, n // 2:n // 2 + length] / _NORMS[(n, F)]
+    pad = hop // 2 * 3
+    return time + y.reshape(1, S, C, length)[..., pad:pad + L]
+
+
 def separate(sess, left, right):
     """left/right: 1-D float32, equal length. Returns {stem: (L, R)} for RETURNED."""
     total = left.shape[0]
@@ -84,7 +150,9 @@ def separate(sess, left, right):
     out = np.zeros((len(SOURCES), 2, total), dtype=np.float32)
     weight = np.zeros(total, dtype=np.float32)
     inp = np.zeros((1, 2, segment), dtype=np.float32)
-    mix = sess.get_inputs()[0].name
+    inputs = sess.get_inputs()
+    mix = inputs[0].name
+    spec_in = inputs[1] if len(inputs) == 2 else None   # the cut model, see stft_head
 
     for c in range(chunks):
         start = c * stride
@@ -95,7 +163,11 @@ def separate(sess, left, right):
         inp[:] = 0.0
         inp[0, 0, :n] = left[start:end]
         inp[0, 1, :n] = right[start:end]
-        stems = sess.run(None, {mix: inp})[0]     # [1, 4, 2, segment]
+        feeds = {mix: inp}
+        if spec_in is not None:
+            feeds[spec_in.name] = stft_head(inp, spec_in.shape)
+        res = sess.run(None, feeds)
+        stems = res[0] if len(res) == 1 else istft_tail(*res)   # [1, 4, 2, segment]
         out[:, :, start:end] += stems[0, :, :, :n] * win[:n]
         weight[start:end] += win[:n]
 

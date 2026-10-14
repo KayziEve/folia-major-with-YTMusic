@@ -31,6 +31,22 @@
       ]
     },
     {
+      "id": "web-api-loopback",
+      "providers": [],
+      "title": "网页版的 API 地址指向本机（localhost）",
+      "symptoms": "网页版（user agent 不含 Electron）配置的 API 地址是 localhost / 127.0.0.1，通常是照抄了 .env.example 的 http://localhost:3000 再部署或打包进 App。手机上、或者访问别人部署的网站时，本机都没有 API 服务，请求要么连不上，要么打到本机别的服务上（常见 code 404）。新版报告里自检会报 ELOOPBACK。",
+      "match": [
+        "\\bELOOPBACK\\b",
+        ["^user agent: (?![^\\n]*Electron/)[^\\n]*(?:Android|iPhone|iPad)", "(?:remote API|backend: remote) https?://(?:localhost|127\\.[\\d.]+|\\[::1\\])\\b"],
+        ["^user agent: (?![^\\n]*Electron/)", "(?:remote API|backend: remote) https?://(?:localhost|127\\.[\\d.]+|\\[::1\\])\\b", "^generated: (?![\\s\\S]*^origin: https?://(?:localhost|127\\.|\\[::1\\]))"]
+      ],
+      "steps": [
+        "`VITE_NETEASE_API_BASE`（酷狗为 `VITE_KUGOU_API_BASE`，QQ 音乐为 `VITE_QQ_API_BASE`）要填成用户的设备能访问到的 API 地址，例如你部署好的 `https://api.example.com`，不能是 `localhost` 或 `127.0.0.1`：那指的是用户自己的手机或电脑。",
+        "这些变量在构建时写入前端，修改后必须重新构建并部署；打包进 App 的要重新打包。",
+        "如果只是想直接使用，推荐下载 Electron 桌面版：桌面版内置了这些服务，不需要额外部署。"
+      ]
+    },
+    {
       "id": "web-api-unreachable",
       "providers": [],
       "title": "网页版连不上部署的 API 服务",

@@ -737,7 +737,7 @@
         "filterType": "想在这面墙里找东西，直接在墙上打字：信息条里冒出一道过滤输入位，墙收成以信息条为中心、只剩匹配项的一小片。",
         "filterKeys": "过滤不联网，只收窄眼前这面墙。Esc 有词先清空，再按一次结束输入；↓ 或 Enter 把焦点交给墙上第一张。",
         "filterSearch": "放大镜才是搜索在线平台（首页上也可以按 /）：整条信息条换成带框的搜索框，提交之后去搜索页看结果。",
-        "toolsQuick": "右下角那颗是墙面工具。顶上一排是一次性动作：定位正在播放、打乱队列、为当前歌曲生成主题、前往 Lattice。",
+        "toolsQuick": "右下角那颗是墙面工具。顶上一排图标是一次性动作：定位正在播放、打乱队列、为当前歌曲生成主题、播放队列、前往 Lattice、前往播放页；指针停在图标上能看到名字和快捷键。",
         "toolsVolume": "中间是音量，和播放条上的是同一份；点左边的图标静音。",
         "toolsAppearance": "最下面是墙面外观：透光在三档之间轮换，还有海报叠色和开灯 / 关灯。向左滑这颗按钮，直接打开命令面板。"
       },
@@ -874,7 +874,7 @@
         "latticeFocusKeys": "方向键从视口中央选择最近海报，再按空间方向移动焦点，并自动平移相机让目标可见。",
         "latticePosterOpen": "点击或按 Enter 展开海报。当前歌曲展开后显示同步歌词；其他歌曲展开后显示标题与播放入口，队列本身不会被重排。",
         "latticeChrome": "展开海报显示播放、额外槽位、时间、进度和返回 Player；触屏点海报，键盘按 Space 显示或隐藏控制条。",
-        "latticeTools": "右下角工具依次提供：聚焦当前歌曲、切歌时自动跟随、打开队列命令、灯光开关与快捷键说明；向左滑这个按钮会打开命令面板。",
+        "latticeTools": "右下角工具和资料库墙是同一套：顶上一排图标是聚焦当前歌曲、打乱队列、生成主题、播放队列、回到主页和前往播放页，下面是音量、切歌时自动跟随、灯光开关与快捷键说明；向左滑这个按钮会打开命令面板。",
         "latticeLights": "灯光关闭后海报退暗，只保留必要层次；这是显示设置，不会暂停播放或修改队列。",
         "latticePosterKeys": "收起时 Enter/Space 展开；展开后 Enter 播放/暂停，Space 显示控制，Esc 收起。",
         "latticePageKeys": ": + C 当前歌曲；{{mod}} + P 队列；{{mod}} + B 返回；{{mod}} + K 命令；方向键移动。",
@@ -1126,7 +1126,7 @@
 | `bravais-seam` | `bravais-seam-filter` | 过滤当前页，和搜索不是一回事 | `ponder.captions.bravaisSeam.filterType` | 想在这面墙里找东西，直接在墙上打字：信息条里冒出一道过滤输入位，墙收成以信息条为中心、只剩匹配项的一小片。 | filter：过滤输入位 | `ponder.anchors.bravaisSeam.filter` |
 | `bravais-seam` | `bravais-seam-filter` | 过滤当前页，和搜索不是一回事 | `ponder.captions.bravaisSeam.filterKeys` | 过滤不联网，只收窄眼前这面墙。Esc 有词先清空，再按一次结束输入；↓ 或 Enter 把焦点交给墙上第一张。 | filter：过滤输入位 | `ponder.anchors.bravaisSeam.filter` |
 | `bravais-seam` | `bravais-seam-filter` | 过滤当前页，和搜索不是一回事 | `ponder.captions.bravaisSeam.filterSearch` | 放大镜才是搜索在线平台（首页上也可以按 /）：整条信息条换成带框的搜索框，提交之后去搜索页看结果。 | searchBox：搜索框 | `ponder.anchors.bravaisSeam.searchBox` |
-| `bravais-seam` | `bravais-seam-tools` | 右下角的墙面工具 | `ponder.captions.bravaisSeam.toolsQuick` | 右下角那颗是墙面工具。顶上一排是一次性动作：定位正在播放、打乱队列、为当前歌曲生成主题、前往 Lattice。 | toolsQuick：一次性动作 | `ponder.anchors.bravaisSeam.toolsQuick` |
+| `bravais-seam` | `bravais-seam-tools` | 右下角的墙面工具 | `ponder.captions.bravaisSeam.toolsQuick` | 右下角那颗是墙面工具。顶上一排图标是一次性动作：定位正在播放、打乱队列、为当前歌曲生成主题、播放队列、前往 Lattice、前往播放页；指针停在图标上能看到名字和快捷键。 | toolsQuick：一次性动作 | `ponder.anchors.bravaisSeam.toolsQuick` |
 | `bravais-seam` | `bravais-seam-tools` | 右下角的墙面工具 | `ponder.captions.bravaisSeam.toolsVolume` | 中间是音量，和播放条上的是同一份；点左边的图标静音。 | toolsVolume：音量 | `ponder.anchors.bravaisSeam.toolsVolume` |
 | `bravais-seam` | `bravais-seam-tools` | 右下角的墙面工具 | `ponder.captions.bravaisSeam.toolsAppearance` | 最下面是墙面外观：透光在三档之间轮换，还有海报叠色和开灯 / 关灯。向左滑这颗按钮，直接打开命令面板。 | toolsAppearance：墙面外观 | `ponder.anchors.bravaisSeam.toolsAppearance` |
 | `command-palette` | `command-palette-search` | 搜出来，回车执行 | `ponder.captions.commandPalette.type` | 命令是搜出来的，不是翻出来的。窗口一开就打字，它按名字、别名和关键词一起筛；记不住全名，记得一半也找得到。 | input：输入行 | `ponder.anchors.commandPalette.input` |
@@ -1215,7 +1215,7 @@
 | `lattice-page` | `lattice-page-navigation` | 在无限墙上移动焦点 | `ponder.captions.pages.latticeFocusKeys` | 方向键从视口中央选择最近海报，再按空间方向移动焦点，并自动平移相机让目标可见。 | pannedPoster：队列海报 | `ponder.anchors.lattice.poster` |
 | `lattice-page` | `lattice-page-poster` | 展开海报并控制播放 | `ponder.captions.pages.latticePosterOpen` | 点击或按 Enter 展开海报。当前歌曲展开后显示同步歌词；其他歌曲展开后显示标题与播放入口，队列本身不会被重排。 | expanded：展开的歌曲 | `ponder.anchors.lattice.expanded` |
 | `lattice-page` | `lattice-page-poster` | 展开海报并控制播放 | `ponder.captions.pages.latticeChrome` | 展开海报显示播放、额外槽位、时间、进度和返回 Player；触屏点海报，键盘按 Space 显示或隐藏控制条。 | chrome：播放控制 | `ponder.anchors.lattice.chrome` |
-| `lattice-page` | `lattice-page-tools` | 聚焦、跟随、队列与灯光 | `ponder.captions.pages.latticeTools` | 右下角工具依次提供：聚焦当前歌曲、切歌时自动跟随、打开队列命令、灯光开关与快捷键说明；向左滑这个按钮会打开命令面板。 | toolsPanel：工具面板 | `ponder.anchors.lattice.toolsPanel` |
+| `lattice-page` | `lattice-page-tools` | 聚焦、跟随、队列与灯光 | `ponder.captions.pages.latticeTools` | 右下角工具和资料库墙是同一套：顶上一排图标是聚焦当前歌曲、打乱队列、生成主题、播放队列、回到主页和前往播放页，下面是音量、切歌时自动跟随、灯光开关与快捷键说明；向左滑这个按钮会打开命令面板。 | toolsPanel：工具面板 | `ponder.anchors.lattice.toolsPanel` |
 | `lattice-page` | `lattice-page-tools` | 聚焦、跟随、队列与灯光 | `ponder.captions.pages.latticeLights` | 灯光关闭后海报退暗，只保留必要层次；这是显示设置，不会暂停播放或修改队列。 | wall：播放队列海报墙 | `ponder.anchors.lattice.wall` |
 | `lattice-page` | `lattice-page-keyboard` | Lattice 的完整键盘操作 | `ponder.captions.pages.latticePosterKeys` | 收起时 Enter/Space 展开；展开后 Enter 播放/暂停，Space 显示控制，Esc 收起。 | poster：队列海报 | `ponder.anchors.lattice.poster` |
 | `lattice-page` | `lattice-page-keyboard` | Lattice 的完整键盘操作 | `ponder.captions.pages.latticePageKeys` | : + C 当前歌曲；{{mod}} + P 队列；{{mod}} + B 返回；{{mod}} + K 命令；方向键移动。 | page：Lattice | `ponder.anchors.pages.lattice` |

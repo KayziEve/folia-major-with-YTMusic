@@ -378,6 +378,10 @@ export type LibraryAccountClock = {
 export type LibraryLoginDiagnosticsEnvironment = {
     appVersion: string | null;
     userAgent: string;
+    /** 报告里的 build 行（官方 / 非官方构建与来源仓库）；不传时报告不带这一行。 */
+    build?: string | null;
+    /** 网页版所在站点的 origin（区分是谁部署的）；桌面版为 null。 */
+    origin?: string | null;
 };
 
 /** 会话事件的日志出口（现 hook 打到 console，前缀 [ProviderQrLogin]，同时进诊断时间线）。 */

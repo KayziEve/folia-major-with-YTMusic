@@ -375,17 +375,19 @@ const createModelStore = ({ getModelsDirs, getDownloadDir, onProgress, onChanged
         let freed = 0;
 
         for (const model of ENTRIES) {
-            const target = installedPath(model);
-            if (target) {
+            // Until nothing resolves: a model can sit under more than one name (MODEL_FILES), and
+            // deleting only the first would leave the page saying installed off the other.
+            for (let target; (target = installedPath(model));) {
                 try {
                     // The runtime is 1400 files, so this is a tree walk rather than a stat - and
                     // it is what makes the freed figure honest for the biggest item on the page.
                     const size = await sizeOf(target);
                     await fsp.rm(target, { recursive: true, force: true });
                     freed += size;
-                    removed.push(model.name);
+                    if (!removed.includes(model.name)) removed.push(model.name);
                 } catch (error) {
                     failed.push({ name: model.name, reason: error?.message || String(error) });
+                    break;
                 }
             }
             // Any half-finished copy of the same thing, wherever it was being written. The runtime

@@ -17,7 +17,8 @@ import OnlineLyricsTab from './panelTab/OnlineLyricsTab';
 import type { OnlineLyricsState } from '../types';
 import type { AudioQualityPreference } from '../types/onlineMusic';
 import type { ThemeSourceModel } from '../hooks/themeControllerState';
-import { getPlaybackSourceRef, getPlaybackSongSource, hasMixedPlaybackSources } from '../utils/appPlaybackGuards';
+import { getPlaybackSourceRef } from '../utils/appPlaybackGuards';
+import { canSaveQueueAsLocalPlaylist } from '../utils/queueReorder';
 import { resolveLikeAvailability } from '../utils/playerLikeAvailability';
 import { usePlayerBottomBarBottomPx } from '../hooks/usePlayerBottomBarBottomPx';
 import { getSizedCoverUrl } from '../utils/coverUrl';
@@ -880,12 +881,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                                                 onMoveSongToNext={onMoveSongToNext}
                                                 onOpenLattice={queue.onOpenLattice}
                                                 // TODO: Define cross-source playlist export before enabling playlist creation for mixed queues.
-                                                canSaveLocalPlaylist={Boolean(
-                                                    isLocal
-                                                    && !hasMixedPlaybackSources(playQueue)
-                                                    && playQueue.length > 0
-                                                    && playQueue.every(song => getPlaybackSongSource(song) === 'local')
-                                                )}
+                                                canSaveLocalPlaylist={canSaveQueueAsLocalPlaylist(currentSong, playQueue)}
                                                 onSaveCurrentQueueAsPlaylist={onSaveCurrentQueueAsPlaylist}
                                                 isDaylight={isDaylight}
                                             />

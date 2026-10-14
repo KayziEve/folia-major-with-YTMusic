@@ -14,6 +14,7 @@ import { useWallCameraPan, type LatticeCamera } from '../../wall/useWallCameraPa
 import { useLatticePosterSelection } from './useLatticePosterSelection';
 import { useWallKeyboardFocus } from './useWallKeyboardFocus';
 import { useWallPointerPan } from '../../wall/useWallPointerPan';
+import { formatWorldTransform } from '../../wall/wallView';
 import type { LatticeTile } from './latticeModel';
 import LatticePoster from './LatticePoster';
 import { countRender } from '../../../dev/renderCount';
@@ -119,7 +120,7 @@ export default function PosterWall({
     const applyCamera = useCallback((next: LatticeCamera, updateBounds = false) => {
         cameraRef.current = next;
         if (worldRef.current) {
-            worldRef.current.style.transform = `translate3d(${next.x}px, ${next.y}px, 0) scale(${next.scale})`;
+            worldRef.current.style.transform = formatWorldTransform(next.x, next.y, next.scale);
         }
         publishCurrentPosterVisibility(next);
         if (!updateBounds || frameRef.current !== null) return;

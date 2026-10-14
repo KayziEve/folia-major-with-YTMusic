@@ -1,4 +1,4 @@
-import type { BravaisLayerEntries, BravaisLayerWall, BravaisSeamArtist, BravaisSeamCollection, BravaisSeamFilter } from './bravaisSeamModels';
+import type { BravaisLayerEntries, BravaisLayerWall, BravaisSeamAlbum, BravaisSeamArtist, BravaisSeamCollection, BravaisSeamFilter } from './bravaisSeamModels';
 import type { BravaisHomeLayer, BravaisHomeSeam } from './bravaisHomeModels';
 import type { LibraryHomeSpecialKind } from '../../core/model/homeSpecialCards';
 
@@ -10,6 +10,9 @@ import type { LibraryHomeSpecialKind } from '../../core/model/homeSpecialCards';
 /** 磁贴上的内容种类（设计稿 §6；'wall' 留白由 stage 自己画，不出现在条目里）。 */
 export type BravaisItemKind = 'track' | 'playlist' | 'album' | 'artist' | 'folder' | 'feed';
 
+/** 专辑墙上曲目封面的画法（bravaisAlbumWall）：整面墙拼成一张封面，或从封面上切下来的碎片。 */
+export type BravaisCoverArt = { mode: 'mosaic' | 'shard'; url: string };
+
 /** 墙上一张磁贴的内容。 */
 export type BravaisItem = {
     /** 层内唯一的 key：集合是条目键（core 的 entryKey），首页卡片是 `card:<id>`。翻牌按它判断「内容变了没有」。 */
@@ -18,6 +21,8 @@ export type BravaisItem = {
     title: string;
     subtitle: string;
     coverUrl?: string;
+    /** 专辑墙（has-album-wall）上这首的封面画法；没有就照常画整张封面。 */
+    coverArt?: BravaisCoverArt;
     /** 徽标文字：集合层是条目序号（01、02…），首页与歌手页是种类（歌单 / 专辑…），集合带曲目数（「歌单 · 124」）。 */
     badge: string;
     /**
@@ -83,6 +88,8 @@ export type BravaisSeamModel = {
     home?: BravaisHomeSeam;
     /** B8 歌手页：头像、别名、简介与统计（ArtistGridView 的信息）。 */
     artist?: BravaisSeamArtist;
+    /** 专辑页：封面、歌手、年份与元信息（左边钉住的专辑海报，见 bravaisAlbumModel）。只有专辑类型的集合有。 */
+    album?: BravaisSeamAlbum;
     /** B8：播放 / 加入当前范围的按钮文案（歌手页是「播放热门」「加入热门歌曲」）；不给就是「播放全部」「加入队列」。 */
     scopeLabels?: { play: string; enqueue: string };
 };

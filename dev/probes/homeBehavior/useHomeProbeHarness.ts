@@ -33,7 +33,6 @@ import {
 import { readHomeLibrary, seedHomeLibrary } from './homeLocalFixtures';
 import { installHomeServiceHook } from './serviceStubs';
 import { installHomeProbeApi } from './homeProbeApi';
-import { PROBE_STAGE_TOOLS } from './probeStageTools';
 import type { HomeProbeDescriptor } from './probeApi';
 
 // dev/probes/homeBehavior/useHomeProbeHarness.ts
@@ -233,7 +232,6 @@ export const useHomeProbeModel = (initial: HomeProbeLibrary): { model: HomeViewM
         stageIsActive: Boolean(stage.active),
         onOpenStagePlayer: stage.enabled ? () => recordProbeCall({ kind: 'openStagePlayer', ids: [] }) : undefined,
         onOpenLattice: latticeEnabled ? openLattice : undefined,
-        stageTools: PROBE_STAGE_TOOLS,
         theme: DEFAULT_THEME,
     }), [
         stage,

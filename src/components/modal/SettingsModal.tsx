@@ -33,6 +33,7 @@ import { openPonderNavigation } from '../../services/ponder/pagePonderTarget';
 import ReleaseNotesDialog from './ReleaseNotesDialog';
 import { JoinCommunityButton } from '../shared/JoinCommunityButton';
 import { copyTextToClipboard } from '../../utils/clipboard';
+import { BUILD_KIND_TAGS, getBuildKind } from '../../utils/buildProvenance';
 import meowImageUrl from '../../../build/miao.png';
 import type { LyricData } from '../../types';
 import { type SettingsModalState, type SettingsSubviewId, type VisualizerSettingsSection } from '../../stores/useSettingsModalStore';
@@ -74,9 +75,12 @@ import { useIsBravaisLibraryActive } from '../../library/app/bravaisLibraryActiv
 
 const DEFAULT_OPENAI_TEMPERATURE = '0.7';
 const AUR_PACKAGE_URL = 'https://aur.archlinux.org/packages/folia-major-bin';
-const VERSION_INFO = __DOCKER_STACK_VERSION__
+const BUILD_KIND = getBuildKind();
+const VERSION_INFO = (__DOCKER_STACK_VERSION__
     ? `${__APP_VERSION_LABEL__} v${__APP_VERSION__} · Stack ${__DOCKER_STACK_VERSION__} · ${__COMMIT_HASH__}`
-    : `${__APP_VERSION_LABEL__} v${__APP_VERSION__} - ${__GIT_BRANCH__} - ${__COMMIT_HASH__}`;
+    : `${__APP_VERSION_LABEL__} v${__APP_VERSION__} - ${__GIT_BRANCH__} - ${__COMMIT_HASH__}`)
+    // 自部署与非官方构建强制带上标记（固定英文，复制进 issue 后 triage 能认出来）
+    + (BUILD_KIND === 'official' ? '' : ` · ${BUILD_KIND_TAGS[BUILD_KIND]}`);
 
 interface SettingsModalProps {
     onClose: () => void;
@@ -490,10 +494,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         DISCORD_RICH_PRESENCE_ENABLED: false,
     });
     const [electronSettingsLoaded, setElectronSettingsLoaded] = useState(false);
+    // Keys stay in the main process; the renderer only knows which ones are saved. The
+    // GEMINI_API_KEY / OPENAI_API_KEY fields in electronSettings are drafts of a replacement key.
     const [savedElectronAiCredentials, setSavedElectronAiCredentials] = useState({
         AI_PROVIDER: 'gemini',
-        GEMINI_API_KEY: '',
-        OPENAI_API_KEY: '',
+        GEMINI_API_KEY: false,
+        OPENAI_API_KEY: false,
     });
     const [electronSaveStatus, setElectronSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
     const [updateStatus, setUpdateStatus] = useState<ElectronUpdateStatus | null>(null);
@@ -512,7 +518,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
         ? 'configured'
         : !electronSettingsLoaded
             ? 'loading'
-            : savedAiApiKey.trim()
+            : savedAiApiKey
                 ? 'configured'
                 : 'missing';
     const showQuarkDownload = electronSettings.UPDATE_CHANNEL === 'realeco';
@@ -528,15 +534,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             setIsElectron(true);
             (window as any).electron.getSettings().then((settings: any) => {
                 if (settings) {
+                    const { AI_API_KEYS_CONFIGURED: configuredKeys, ...rest } = settings;
                     setElectronSettings(prev => ({
                         ...prev,
-                        ...settings,
-                        OPENAI_API_TEMPERATURE: String(settings.OPENAI_API_TEMPERATURE ?? '').trim() || DEFAULT_OPENAI_TEMPERATURE,
+                        ...rest,
+                        OPENAI_API_TEMPERATURE: String(rest.OPENAI_API_TEMPERATURE ?? '').trim() || DEFAULT_OPENAI_TEMPERATURE,
                     }));
                     setSavedElectronAiCredentials({
                         AI_PROVIDER: settings.AI_PROVIDER === 'openai' ? 'openai' : 'gemini',
-                        GEMINI_API_KEY: String(settings.GEMINI_API_KEY ?? ''),
-                        OPENAI_API_KEY: String(settings.OPENAI_API_KEY ?? ''),
+                        GEMINI_API_KEY: configuredKeys?.GEMINI_API_KEY === true,
+                        OPENAI_API_KEY: configuredKeys?.OPENAI_API_KEY === true,
                     });
                 }
             }).finally(() => setElectronSettingsLoaded(true));
@@ -621,8 +628,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 : DEFAULT_OPENAI_TEMPERATURE;
             setElectronSaveStatus('saving');
             setElectronSettings(prev => ({ ...prev, OPENAI_API_TEMPERATURE: temperature }));
-            await (window as any).electron.saveSettings('GEMINI_API_KEY', electronSettings.GEMINI_API_KEY);
-            await (window as any).electron.saveSettings('OPENAI_API_KEY', electronSettings.OPENAI_API_KEY);
+            // Only a newly typed key is sent; an empty field keeps the saved one (clearing is its own action).
+            const geminiKeyDraft = electronSettings.GEMINI_API_KEY.trim();
+            const openaiKeyDraft = electronSettings.OPENAI_API_KEY.trim();
+            if (geminiKeyDraft) {
+                await (window as any).electron.saveSettings('GEMINI_API_KEY', geminiKeyDraft);
+            }
+            if (openaiKeyDraft) {
+                await (window as any).electron.saveSettings('OPENAI_API_KEY', openaiKeyDraft);
+            }
             await (window as any).electron.saveSettings('OPENAI_API_URL', electronSettings.OPENAI_API_URL);
             await (window as any).electron.saveSettings('OPENAI_API_MODEL', electronSettings.OPENAI_API_MODEL);
             await (window as any).electron.saveSettings('OPENAI_API_TEMPERATURE', temperature);
@@ -632,15 +646,31 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
             await (window as any).electron.saveSettings('ENABLE_UPDATE_CHECK', electronSettings.ENABLE_UPDATE_CHECK);
             await (window as any).electron.saveSettings('ENABLE_AUTO_UPDATE', electronSettings.ENABLE_AUTO_UPDATE);
             await (window as any).electron.saveSettings('UPDATE_CHANNEL', electronSettings.UPDATE_CHANNEL);
-            await (window as any).electron.saveSettings('DISCORD_RICH_PRESENCE_ENABLED', electronSettings.DISCORD_RICH_PRESENCE_ENABLED);
+            const savedSettings = await (window as any).electron.saveSettings('DISCORD_RICH_PRESENCE_ENABLED', electronSettings.DISCORD_RICH_PRESENCE_ENABLED);
+            const configuredKeys = savedSettings?.AI_API_KEYS_CONFIGURED;
             setSavedElectronAiCredentials({
                 AI_PROVIDER: electronSettings.AI_PROVIDER === 'openai' ? 'openai' : 'gemini',
-                GEMINI_API_KEY: electronSettings.GEMINI_API_KEY,
-                OPENAI_API_KEY: electronSettings.OPENAI_API_KEY,
+                GEMINI_API_KEY: configuredKeys?.GEMINI_API_KEY === true,
+                OPENAI_API_KEY: configuredKeys?.OPENAI_API_KEY === true,
             });
+            // Drop the saved drafts so the field goes back to the "saved" placeholder; keep anything typed meanwhile.
+            setElectronSettings(prev => ({
+                ...prev,
+                GEMINI_API_KEY: prev.GEMINI_API_KEY.trim() === geminiKeyDraft ? '' : prev.GEMINI_API_KEY,
+                OPENAI_API_KEY: prev.OPENAI_API_KEY.trim() === openaiKeyDraft ? '' : prev.OPENAI_API_KEY,
+            }));
             setElectronSaveStatus('saved');
             setTimeout(() => setElectronSaveStatus('idle'), 2000);
         }
+    };
+
+    const handleClearAiApiKey = async (key: 'GEMINI_API_KEY' | 'OPENAI_API_KEY') => {
+        if (!window.electron?.saveSettings) {
+            return;
+        }
+        const settings = await window.electron.saveSettings(key, '');
+        setSavedElectronAiCredentials(prev => ({ ...prev, [key]: settings?.AI_API_KEYS_CONFIGURED?.[key] === true }));
+        setElectronSettings(prev => ({ ...prev, [key]: '' }));
     };
 
     const handleToggleDiscordPresence = async (enabled: boolean) => {
@@ -1518,6 +1548,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                 ? t('status.copied')
                                                 : VERSION_INFO}
                                         </button>
+                                        {BUILD_KIND !== 'official' && (
+                                            <p
+                                                className={`max-w-sm text-[11px] leading-snug font-sans ${BUILD_KIND === 'unofficial' ? 'text-amber-500/90' : 'opacity-60'}`}
+                                                style={BUILD_KIND === 'unofficial' ? undefined : { color: 'var(--text-secondary)' }}
+                                                data-build-kind-notice={BUILD_KIND}
+                                            >
+                                                {t(BUILD_KIND === 'unofficial' ? 'options.unofficialBuildNotice' : 'options.selfHostedBuildNotice')}
+                                            </p>
+                                        )}
 
                                         {/* 第二行：版本状态与安装操作 */}
                                         {updateStatus?.availableVersion && (
@@ -1860,6 +1899,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                                                     onOpenChinaDownload: handleOpenChinaDownload,
                                                     onUpdateChannelChange: handleUpdateChannelChange,
                                                     onSaveElectronSettings: saveElectronSettings,
+                                                    onClearAiApiKey: handleClearAiApiKey,
+                                                    savedAiApiKeys: {
+                                                        GEMINI_API_KEY: savedElectronAiCredentials.GEMINI_API_KEY,
+                                                        OPENAI_API_KEY: savedElectronAiCredentials.OPENAI_API_KEY,
+                                                    },
                                                     onToggleAutoUpdate: handleToggleAutoUpdate,
                                                     onToggleUpdateCheck: handleToggleUpdateCheck,
                                                     setElectronSettings,

@@ -31,20 +31,7 @@ export default {
     "crumbPlayer": "Now Playing",
     "tools": "Wall tools",
     "toolsLocate": "Locate the playing song",
-    "toolsLocateShort": "Locate",
-    "toolsShuffle": "Shuffle the queue",
-    "toolsShuffleShort": "Shuffle",
-    "toolsShuffleUnavailable": "Needs two or more songs in the queue (not in Personal FM)",
-    "toolsTheme": "Generate a theme for this song",
-    "toolsThemeShort": "Theme",
-    "toolsThemeBusy": "Generating a theme…",
-    "toolsThemeBusyShort": "Working…",
-    "toolsThemeUnavailable": "Needs a playing song with lyrics (or pure music)",
     "toolsLattice": "Go to Lattice",
-    "toolsLatticeShort": "Lattice",
-    "toolsMute": "Mute",
-    "toolsUnmute": "Unmute",
-    "toolsMuted": "Muted",
     "toolsAppearance": "Wall appearance",
     "helpMove": "Move the focus (wall or info strip)",
     "helpOpen": "Open a song card or a collection",
@@ -61,6 +48,36 @@ export default {
     "helpSearch": "Search online platforms (home)",
     "filterPlaceholder": "Filter this page",
     "kind": {"track": "Song", "playlist": "Playlist", "album": "Album", "artist": "Artist", "folder": "Folder", "feed": "Radio"}
+  },
+  "wallTools": {
+    "shuffle": "Shuffle the queue",
+    "shuffleUnavailable": "Needs two or more songs in the queue (not in Personal FM)",
+    "shuffleUnavailableInStage": "An external Stage is playing: the queue can't be shuffled",
+    "theme": "Generate a theme for this song",
+    "themeBusy": "Generating a theme…",
+    "themeUnavailable": "Needs a playing song with lyrics (or pure music)",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "muted": "Muted",
+    "queue": "Play queue",
+    "queueShow": "Show the play queue",
+    "queueHide": "Hide the play queue",
+    "queueUnavailableInFm": "Personal FM has no queue to edit",
+    "queueStageReadOnly": "An external Stage is playing: you can pick a song, but not edit the queue",
+    "queueIsland": "Play queue",
+    "queueCount_one": "Play queue · {{count}} song",
+    "queueCount_other": "Play queue · {{count}} songs",
+    "queueClear": "Clear the queue",
+    "queueClearConfirm": "Click again to clear the queue",
+    "queueSave": "Save as local playlist",
+    "queueSaved": "Saved as the local playlist “{{name}}”",
+    "queueSaveFailed": "Couldn’t save the playlist",
+    "queueDragHandle": "Drag to reorder",
+    "queueMoved": "Moved to position {{position}}",
+    "openPlayer": "Open the player",
+    "openPlayerUnavailable": "Nothing is playing yet",
+    "goHome": "Go to Home",
+    "wallSection": "Wall"
   },
   "libraryBravaisHome": {
     "hide": "Hide",
@@ -356,6 +373,19 @@ export default {
     "loginExpired": "Login expired. Please sign in again",
     "songPreviewOnly": "Only a preview is available. Sign in with an account that can play the full track.",
     "songRegionRestricted": "Playback is limited to mainland China. Please check your network connection.",
+    "songTemporarilyUnavailable": "Can't play this song right now",
+    "songTemporarilyUnavailableSignInHint": "Can't play this song right now. Signing in may help.",
+    "songNetworkFailed": "Couldn't connect to load this song. Check your network and try again.",
+    "songRequestTimedOut": "Loading this song timed out. Please try again.",
+    "songRetrying": "Connection failed. Retrying…",
+    "songServiceUnavailable": "The music service is unavailable right now. Please try again later.",
+    "songServiceNotConfigured": "This music source isn't available here (not set up, or the desktop app is required).",
+    "songRateLimited": "Too many requests. Try again in {{seconds}}s.",
+    "songRateLimitedNoWait": "Too many requests. Please try again later.",
+    "songLoginRequired": "Sign in to play this song.",
+    "songMembershipRequired": "This song requires a membership to play.",
+    "songPurchaseRequired": "This song must be purchased before it can be played.",
+    "songEntitlementRequired": "Your account can't play this song (a membership or purchase may be required).",
     "loggedOut": "Logged out",
     "clickToPlay": "Click play to start",
     "liked": "Added to Liked Songs",
@@ -1238,7 +1268,6 @@ export default {
     "latticeLightsOn": "Lights on",
     "latticeLightsOff": "Lights off",
     "latticeTools": "Lattice tools",
-    "latticeOpenQueueCommand": "Open queue command",
     "latticeHelp": "Operation guide",
     "latticeHelpPoster": "Press Enter to expand the selected song, then Enter again to play",
     "latticeHelpReturn": "Back",
@@ -1293,7 +1322,13 @@ export default {
     "qrTipsTitle": "Try these first",
     "qrTipRestart": "Restart Folia, then scan again.",
     "qrTipSwitchNetwork": "Switch to another network (for example a phone hotspot), then restart Folia.",
+    "qrDeviceLimit": "This QQ Music account has reached its limit of signed-in devices. Remove an old device first.",
+    "qrDeviceLimitTipsTitle": "Remove a signed-in device first",
+    "qrDeviceLimitTipRemove": "Open the official QQ Music app, go to Settings → Device Management (at the bottom of Settings), and remove devices you no longer use.",
+    "qrDeviceLimitTipQuota": "QQ Music limits how many devices can stay signed in: 1 for free accounts, 3 for Green Diamond, 5 for Super VIP.",
+    "qrDeviceLimitTipRescan": "Then come back to Folia and scan again.",
     "qrDiagnosticsToggle": "Still not working? Send us the diagnostics",
+    "qrDiagnosticsToggleElsewhere": "Still not working? See diagnostics",
     "qrDiagnosticsPrompt": "Copy the diagnostics and send them to us so we can find the cause.",
     "qrDiagnosticsPromptScanned": "If you confirmed on your phone but were still not signed in, copy the diagnostics and send them to us so we can find the cause.",
     "qrDiagnosticsDisclosure": "The diagnostics include app and system versions, network adapters and IP addresses, proxy settings, the login request log with raw error text, and the network check results. They contain no passwords, cookies or tokens.",
@@ -1302,6 +1337,8 @@ export default {
     "qrDiagnosticsCopyFailed": "Copy failed",
     "qrDiagnosticsReport": "Report on GitHub",
     "qrDiagnosticsPasteHint": "Paste the diagnostics Folia copied here, and briefly describe what happened (network, whether a proxy was on, etc.).",
+    "qrReportWebDeployment": "This is a problem with this web deployment: the site has no music platform API configured, or cannot reach it. Please give the diagnostics to whoever deployed this site; if that is you, check VITE_*_API_BASE against the deployment docs and rebuild. If you just want to use Folia, download the official desktop app.",
+    "qrReportUnofficialBuild": "You are not using an official Folia build or one of the documented self-hosting setups (it may be repackaged or modified by someone else). Please report problems to whoever provided it. Official builds are on GitHub Releases.",
     "qrSelfCheckTitle": "Automatic check",
     "qrSelfCheckRunning": "Checking the network and the local service…",
     "qrSelfCheckFailed": "The automatic check could not finish: {{message}}",
@@ -2526,6 +2563,9 @@ export default {
     "useSystemProxyAIDesc": "Route strictly AI requests through system proxy.",
     "geminiApiKey": "Gemini API Key",
     "openaiApiKey": "OpenAI API Key",
+    "aiApiKeySavedPlaceholder": "Saved (leave blank to keep it)",
+    "aiApiKeySavedDesc": "The key is stored encrypted on this device and is not shown again. Enter a new key and save to replace it.",
+    "aiApiKeyClear": "Clear",
     "openaiApiUrl": "OpenAI API URL",
     "openaiApiModel": "OpenAI Model",
     "openaiApiModelDesc": "Required by many OpenAI-compatible providers. Examples: gpt-5.6-luna, gpt-4.1-mini, deepseek-v4-flash.",
@@ -2535,7 +2575,7 @@ export default {
     "openaiApiStreamDesc": "Turn on only if your provider requires streaming; the result is still parsed after it has been fully received.",
     "aiTestConnection": "Test connection",
     "aiTestRunning": "Testing...",
-    "aiTestConnectionDesc": "Sends a \"hello\" to the endpoint using the values currently in the form (no need to save first).",
+    "aiTestConnectionDesc": "Sends a \"hello\" to the endpoint using the values currently in the form (no need to save first). A blank key field uses the saved key.",
     "aiTestSuccess": "Connected",
     "aiTestFailed": "Connection failed",
     "aiTestDuration": "Time",
@@ -2774,6 +2814,8 @@ export default {
     "linuxManualUpdateNotice": "Linux does not support automatic updates. Download the complete deb, rpm, or tar.gz package to upgrade manually; only stable AUR installations should upgrade folia-major-bin through the package manager.",
     "manualUpdateNotice": "Note: Automatic update is not supported on this platform. Please download the package manually.",
     "versionCopiedHint": "Click to copy version info",
+    "unofficialBuildNotice": "Unofficial build: this version was neither built by the Folia repository's CI nor deployed through a documented self-hosting setup (Docker, Vercel, Cloudflare), and may be modified or missing its backend services. Please contact whoever provided it first; official builds are on GitHub Releases.",
+    "selfHostedBuildNotice": "Self-hosted: built and hosted by whoever deployed it, including the music platform backends. Please contact the deployer first, and report on GitHub once it is clearly a Folia problem.",
     "versionCopiedToast": "Copied",
     "stageConnected": "Stage connected",
     "nowPlayingConnectedStatus": "Now Playing connected",
@@ -2980,6 +3022,91 @@ export default {
         "description": "When signed in, your own private playlists now load their songs, with real paging. Self-hosted backends must run qq-music-api 3.1.2 or later; older backends fall back automatically, and a playlist that cannot be read now says it is not public instead of silently showing as empty."
       }
     },
+    "v0_7_176": {
+      "intro": "0.7.176 combines the 0.7.18 and 0.7.19 improvements with YouTube Music desktop integration. It adds Bravais artist and album posters, clearer playback failure reasons, more natural Chinese and Japanese lyric segmentation, offline web startup, encrypted desktop AI keys, and more.",
+      "artistPoster": {
+        "title": "Artist Pages Become Posters",
+        "description": "The full info strip on a Bravais artist page is now drawn as a Tempera-style poster pinned to the left of the wall. Its layout is fixed per artist, its colours come from the artist's three most popular albums, and the name scales to fit instead of overflowing. The album wall to the right tilts to meet it, and you can still drag and scroll while it is tilted."
+      },
+      "albumPoster": {
+        "title": "Album Posters and Cover Mosaics",
+        "description": "Album pages get a poster too: the cover taped onto dotted paper, a large title with a layered shadow, and the artist, year and track count, all with an entrance animation. Open an album from an artist page and its cover flies from the tile you clicked onto the poster, then flies back when you return. On the wall beside it, an album with a single cover is assembled into one large cover across the tracks; when an album mixes in single covers, repeated covers are cut into fragments that return to full colour on hover or while playing."
+      },
+      "playbackFailure": {
+        "title": "Playback Failures Explain Themselves",
+        "description": "An online song that fails to play no longer always shows \"song removed\". Folia now tells apart removed songs, network drops or timeouts, service errors or rate limits, songs that need sign-in, a membership or a purchase, and regional restrictions. Only truly removed songs count down to the next track and look for another version; when the network drops, playback stops and keeps your queue so you can retry or skip; sign-in, membership and purchase cases are shown without retrying again and again. Works with NetEase, QQ Music, KuGou and Bodian."
+      },
+      "lyricSegmenter": {
+        "title": "More Natural Chinese and Japanese Word Splits",
+        "description": "Tempera, Sonnet and other modes that lay lyrics out word by word now use a new default segmenter, icu-folia. Chinese is no longer chopped into fragments (idioms and words stay whole, and particles such as 的 and 了 stay with the word before them), and Japanese is split into natural phrases. Tempera also no longer scatters short words that belong together across separate shots. Word splits you saved yourself still come first, and the dictionaries load only when needed."
+      },
+      "offlineStartup": {
+        "title": "Web Version Starts Offline",
+        "description": "Fixed the web version / PWA failing to load when refreshed without a network connection. Local covers also show offline, and on a first visit they no longer wait for the background cache to finish downloading. Icons used by themes now load on demand, so less is downloaded at startup."
+      },
+      "stabilityFixes": {
+        "title": "Steadier All Round",
+        "description": "On Android, opening Options or other overlays on the Bravais or Lattice wall no longer flashes the wall underneath. Fixed an occasional crash when resizing the window while Tempera is playing. The Sora background stops drawing while paused, and its stars hold still in static mode. The release notes window shown at startup now closes with Esc."
+      }
+    ,
+      "ytmusicDesktop": {
+        "title": "YouTube Music on Desktop",
+        "description": "Connect your YouTube Music account to search and play songs and browse your playlists. YouTube Music lyrics are not available in this integration."
+      }},
+    "v0_7_19": {
+      "intro": "0.7.19 turns the artist and album pages in Bravais into Tempera-style posters. When an online song fails to play, Folia now tells you the real reason instead of always saying it was removed; word-by-word visualizers such as Tempera split Chinese and Japanese lyrics more naturally; and the web version starts up offline again.",
+      "artistPoster": {
+        "title": "Artist Pages Become Posters",
+        "description": "The full info strip on a Bravais artist page is now drawn as a Tempera-style poster pinned to the left of the wall. Its layout is fixed per artist, its colours come from the artist's three most popular albums, and the name scales to fit instead of overflowing. The album wall to the right tilts to meet it, and you can still drag and scroll while it is tilted."
+      },
+      "albumPoster": {
+        "title": "Album Posters and Cover Mosaics",
+        "description": "Album pages get a poster too: the cover taped onto dotted paper, a large title with a layered shadow, and the artist, year and track count, all with an entrance animation. Open an album from an artist page and its cover flies from the tile you clicked onto the poster, then flies back when you return. On the wall beside it, an album with a single cover is assembled into one large cover across the tracks; when an album mixes in single covers, repeated covers are cut into fragments that return to full colour on hover or while playing."
+      },
+      "playbackFailure": {
+        "title": "Playback Failures Explain Themselves",
+        "description": "An online song that fails to play no longer always shows \"song removed\". Folia now tells apart removed songs, network drops or timeouts, service errors or rate limits, songs that need sign-in, a membership or a purchase, and regional restrictions. Only truly removed songs count down to the next track and look for another version; when the network drops, playback stops and keeps your queue so you can retry or skip; sign-in, membership and purchase cases are shown without retrying again and again. Works with NetEase, QQ Music, KuGou and Bodian."
+      },
+      "lyricSegmenter": {
+        "title": "More Natural Chinese and Japanese Word Splits",
+        "description": "Tempera, Sonnet and other modes that lay lyrics out word by word now use a new default segmenter, icu-folia. Chinese is no longer chopped into fragments (idioms and words stay whole, and particles such as 的 and 了 stay with the word before them), and Japanese is split into natural phrases. Tempera also no longer scatters short words that belong together across separate shots. Word splits you saved yourself still come first, and the dictionaries load only when needed."
+      },
+      "offlineStartup": {
+        "title": "Web Version Starts Offline",
+        "description": "Fixed the web version / PWA failing to load when refreshed without a network connection. Local covers also show offline, and on a first visit they no longer wait for the background cache to finish downloading. Icons used by themes now load on demand, so less is downloaded at startup."
+      },
+      "stabilityFixes": {
+        "title": "Steadier All Round",
+        "description": "On Android, opening Options or other overlays on the Bravais or Lattice wall no longer flashes the wall underneath. Fixed an occasional crash when resizing the window while Tempera is playing. The Sora background stops drawing while paused, and its stars hold still in static mode. The release notes window shown at startup now closes with Esc."
+      }
+    },
+    "v0_7_18": {
+      "intro": "0.7.18 adds a play queue you can work with right from the wall tools in Bravais and Lattice, and both walls now share one tools panel. Several lyric visualizers use fewer resources, switching between local songs is smoother, QQ Music QR sign-in tells you what to do when your device limit is reached, and the desktop app now stores AI keys encrypted.",
+      "queueIsland": {
+        "title": "Manage the Queue on the Wall",
+        "description": "Open Wall tools in the bottom-right corner of Bravais or Lattice and choose Play queue to show the queue above the panel. Click a song to play it without leaving the page, drag the handle to reorder, hover to play next, move to the end or remove, save the queue as a local playlist, or clear it with a two-step confirm. Keyboard: ↑↓ to move, Alt+↑↓ to reorder, Delete to remove. Not available in Personal FM; while an external Stage is playing you can only pick songs."
+      },
+      "wallTools": {
+        "title": "One Tools Panel for Both Walls",
+        "description": "Wall tools in Bravais and Lattice now share one layout: a row of six quick buttons (locate the playing song, shuffle the queue, generate a theme, play queue, go to Lattice or Home, open the player), then volume, wall appearance, poster tint and lighting. The panel is more compact, and Lattice's old queue commands row is replaced by the queue."
+      },
+      "visualizerPerf": {
+        "title": "Lighter Lyric Visualizers",
+        "description": "Sonnet, Tempera, Lumiere, Mindscape, Claddagh, Monet, Pendolo and the Latent background now redo far less work each frame. Pendolo's clockwork is drawn with WebGL2, and changing Sonnet's settings no longer rebuilds its canvas. Graphics contexts are released when you switch modes, so switching back and forth no longer pushes out other visualizers."
+      },
+      "localPlayback": {
+        "title": "Smoother Local Song Changes",
+        "description": "Moving to the next local song no longer stutters: covers and online matches prepared in advance are used right away instead of being extracted and matched again when the song changes, and song changes are faster in large libraries."
+      },
+      "qqDeviceLimit": {
+        "title": "QQ Sign-in Explains the Device Limit",
+        "description": "When a QQ Music QR sign-in fails because the account has reached its device limit, the sign-in panel now says so and walks you through removing old devices (Settings → Device Management in the QQ Music app, then scan again) instead of pointing to your network. On the web version this is only detected for WeChat QR sign-in for now."
+      },
+      "aiKeySecure": {
+        "title": "Encrypted AI Keys on Desktop",
+        "description": "The desktop app now stores Gemini / OpenAI keys encrypted with the system's secure storage, and plain-text keys from older versions are migrated at startup. Saved keys are never shown again: leave the field blank to keep a key, type a new one to replace it, or use the separate Clear button. Testing the connection with a blank field uses the saved key."
+      }
+    },
     "v0_7_175": {
       "intro": "0.7.175 combines the Spica major update from 0.7.17 with YouTube Music desktop integration and improved command palette keyboard navigation.",
       "bravais": {
@@ -3015,6 +3142,7 @@ export default {
         "description": "Using the arrow keys in the command palette now scrolls the list to keep the selected result visible."
       }
     },
+
     "v0_7_16": {
       "intro": "0.7.16 moves AMLL lyrics to the official API, finds far more AMLL lyrics for QQ Music songs, and lets manual matching search AMLL directly. It also adds Tab switching between home tabs and fixes missing album and artist links in local search results.",
       "amllSource": {
@@ -3444,7 +3572,12 @@ export default {
     "albumsSyncing": "Loading albums {{loaded}} / {{total}}",
     "albumsSyncingOpen": "Loading albums… {{loaded}}",
     "albumsInterrupted": "Albums stopped at {{loaded}}",
-    "panelTitle": "Top songs and albums"
+    "panelTitle": "Top songs and albums",
+    "posterLabel": "Artist poster",
+    "posterTopSongs": "Top songs"
+  },
+  "libraryBravaisAlbum": {
+    "posterLabel": "Album poster"
   },
   "artistGrid": {
     "localArtist": "Local Artist: {{artistName}}",
@@ -4473,7 +4606,7 @@ export default {
         "filterType": "To find something on this wall, just type on the wall: a filter field appears in the strip, and the wall shrinks to only the matches, laid out around the strip.",
         "filterKeys": "Filtering never goes online; it only narrows the wall in front of you. Esc clears the text first, then ends typing; ↓ or Enter hands focus to the first tile on the wall.",
         "filterSearch": "The magnifier is the online search (on the home page you can also press /): the whole strip turns into a boxed search field, and submitting takes you to the search page.",
-        "toolsQuick": "The button in the bottom-right corner is the wall tools. The top row holds one-shot actions: locate the playing song, shuffle the queue, generate a theme for this song, go to Lattice.",
+        "toolsQuick": "The button in the bottom-right corner is the wall tools. The row of icons on top holds one-shot actions: locate the playing song, shuffle the queue, generate a theme for this song, the play queue, go to Lattice, open the player. Hover an icon to see its name and shortcut.",
         "toolsVolume": "In the middle is the volume, the same one as on the player bar; click the icon on its left to mute.",
         "toolsAppearance": "At the bottom is the wall appearance: transparency cycles through three levels, plus poster tint and lights on / off. Swipe the button left to open the command palette directly."
       },
@@ -4644,7 +4777,7 @@ export default {
         "latticeFocusKeys": "Arrow keys first adopt the nearest poster to the viewport center, then move spatially and pan the camera to keep the next target visible.",
         "latticePosterOpen": "Click or press Enter to expand a poster. The current song shows synchronized lyrics; another song shows its title and play entry without reordering the queue.",
         "latticeChrome": "The expanded poster contains play/pause, extra slots, time, scrubbing, and Open Player. Tap the expanded poster again, or press Space, to reveal or hide it.",
-        "latticeTools": "The bottom-right tools focus the current song, follow track changes, open the queue command, switch lights, and show key help. Sliding the button left opens commands.",
+        "latticeTools": "The bottom-right tools match the library wall: the icon row focuses the current song, shuffles the queue, generates a theme, shows the play queue, goes home and opens the player; below are volume, follow track changes, lights and key help. Sliding the button left opens commands.",
         "latticeLights": "Lights Off dims the wall while retaining its structure. It is only a display setting: playback and queue order are unchanged.",
         "latticePosterKeys": "Enter or Space expands a closed poster. Once open, Enter plays or pauses, Space toggles controls, and Escape collapses and clears focus first.",
         "latticePageKeys": ": + C focuses the current song, {{mod}} + P opens the queue, {{mod}} + B goes back, {{mod}} + K opens the command window; arrow keys move poster focus.",

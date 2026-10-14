@@ -15,6 +15,7 @@ export const buildQrLoginFailureHelpProps = ({
     failure,
     tips,
     selfCheck = null,
+    reportElsewhereNote = null,
     buildReport,
 }: {
     t: TFunction;
@@ -23,17 +24,20 @@ export const buildQrLoginFailureHelpProps = ({
     /** 视图里已翻译的简单办法（useLibraryAccountLogin 的 failureTips）。 */
     tips: NonNullable<LibraryLoginView['failureTips']>;
     selfCheck?: LibraryLoginSelfCheckView | null;
+    /** 视图里的 reportElsewhereNote：非 null 时不给去 GitHub 反馈的按钮，提示语也换成这句。 */
+    reportElsewhereNote?: string | null;
     buildReport: () => Promise<string>;
 }): QrLoginFailureHelpProps => ({
     tips: { title: tips.title, items: tips.items },
     selfCheck,
     escalationLabel: tips.escalation,
-    prompt: translateHomeMessage(t, resolveLoginDiagnosticsPrompt(failure)),
+    prompt: reportElsewhereNote ?? translateHomeMessage(t, resolveLoginDiagnosticsPrompt(failure)),
     disclosure: t('home.qrDiagnosticsDisclosure'),
     copyLabel: t('home.qrDiagnosticsCopy'),
     copiedLabel: t('home.qrDiagnosticsCopied'),
     copyFailedLabel: t('home.qrDiagnosticsCopyFailed'),
     reportLabel: t('home.qrDiagnosticsReport'),
+    reportElsewhereNote,
     buildReport,
     buildIssueUrl: report => buildQrLoginIssueUrl({
         providerId,

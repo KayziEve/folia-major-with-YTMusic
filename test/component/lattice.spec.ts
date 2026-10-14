@@ -393,6 +393,27 @@ test('the wall tool panel focuses the current song', async ({ mount, page }) => 
     await expect(focusButton).toBeDisabled();
 });
 
+test('the wall tool panel shares the six-cell layout and its home cell always goes home', async ({ mount, page }) => {
+    const wall = await mount('lattice');
+    await settle(page);
+    const root = wall.locator('[data-homes]');
+    await wall.getByRole('button', { name: 'Lattice tools', exact: true }).click();
+    const menu = wall.getByRole('menu', { name: 'Lattice tools', exact: true });
+    // 探针没有墙面工具宿主：洗牌、主题、播放器三格跳过，队列格在但禁用；去处是「主页」。
+    expect(await menu.locator('[data-wall-tools-quick]').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).dataset.wallToolsQuick)))
+        .toEqual(['locate-playing', 'queue', 'go-home']);
+    await expect(menu.locator('[data-wall-tools-quick="queue"]')).toBeDisabled();
+    await expect(menu.getByRole('slider', { name: 'Volume', exact: true })).toBeVisible();
+    await expect(menu.getByRole('separator', { name: 'Wall', exact: true })).toBeAttached();
+    await expect(menu.getByRole('menuitem', { name: 'Open queue command', exact: true })).toHaveCount(0);
+    const home = menu.getByRole('menuitem', { name: 'Go to Home', exact: true });
+    await expect(home).toHaveAttribute('data-wall-tools-quick', 'go-home');
+    await home.click();
+    await expect(root).toHaveAttribute('data-homes', '1');
+    await expect(root).toHaveAttribute('data-backs', '0');
+    await expect(menu).toHaveCount(0);
+});
+
 test('auto-focus toggle leaves browsing position alone until the next enabled track change', async ({ mount, page }) => {
     const wall = await mount('lattice');
     await settle(page);

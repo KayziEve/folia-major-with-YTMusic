@@ -7,7 +7,7 @@ import type { LibraryDirectoryBatchController } from './directory';
 import type { LibraryHomeData } from './home';
 import type { LibraryHomeResources } from './homeModel';
 import type { CollectionMutationController } from './mutations';
-import type { LibraryPlaybackPort, LibraryStageToolsPort } from './ports';
+import type { LibraryPlaybackPort } from './ports';
 import type { CollectionResource } from './resource';
 import type { LibrarySuiteChromeActionMeta } from './suiteChrome';
 
@@ -391,8 +391,6 @@ export type LibrarySuiteStageProps = {
      * 「前往 Lattice」用它；缺省时不画那一格。
      */
     onOpenLattice?: () => void;
-    /** 墙上工具面板的宿主动作（首页数据的 stageTools：生成主题、队列洗牌、音量预览）。缺省时工具面板不画这几项。 */
-    tools?: LibraryStageToolsPort;
 };
 
 /**

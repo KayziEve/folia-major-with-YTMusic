@@ -96,6 +96,7 @@ const buildLoginModalProps = (
                 failure: session.failure,
                 tips: view.failureTips,
                 selfCheck: view.selfCheck,
+                reportElsewhereNote: view.reportElsewhereNote,
                 buildReport: async () => {
                     const result = await account.buildLoginDiagnosticReport();
                     if (result.status !== 'ok') throw new Error('no login session to report');

@@ -10,7 +10,8 @@ import type { BravaisAccountActions } from './bravaisAccountStore';
 // 按用户该做的顺序——
 // 1. 几条简单办法（重启 Folia；换个网络再重启）；
 // 2. 自检（running 时转圈与「正在检查」，跑完是结论、可能的代理提示与逐项结果，自检出错时是出错说明）；
-// 3. 收起的「还是不行？」：展开后才有提示、报告内容的告知、复制诊断与去 GitHub 反馈——不一上来就让人发 issue。
+// 3. 收起的「还是不行？」：展开后才有提示、报告内容的告知、复制诊断与去 GitHub 反馈——不一上来就让人发 issue；
+//    网页版部署问题或非官方构建不给去 GitHub 的按钮，提示语换成该找谁（escalation.elsewhere）。
 // 报告要等点了才生成（会等还在跑的自检）。重试后失败形态清空，这块随之卸载；调用方按会话代次给 key，下一次失败重新收起。
 
 type CopyState = 'idle' | 'working' | 'copied' | 'failed';
@@ -92,10 +93,12 @@ const BravaisLoginFailureHelpView: React.FC<{
                                 data-bravais-copy-state={copyState} disabled={copyState === 'working'} onClick={() => void copy()}>
                                 <CopyIcon aria-hidden className={copyState === 'working' ? 'animate-spin' : undefined} />{copyLabel}
                             </button>
-                            <button type="button" className="bravais-chrome-button" data-bravais-form-action="report-diagnostics"
-                                disabled={copyState === 'working'} onClick={() => void report()}>
-                                <ExternalLink aria-hidden />{t('home.qrDiagnosticsReport')}
-                            </button>
+                            {!help.escalation.elsewhere && (
+                                <button type="button" className="bravais-chrome-button" data-bravais-form-action="report-diagnostics"
+                                    disabled={copyState === 'working'} onClick={() => void report()}>
+                                    <ExternalLink aria-hidden />{t('home.qrDiagnosticsReport')}
+                                </button>
+                            )}
                         </span>
                     </div>
                 )}

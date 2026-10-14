@@ -11,7 +11,6 @@ import type {
 } from '../../../types';
 import type { ProviderCollection, ProviderUser } from '../../../types/onlineMusic';
 import type { NavidromeSong } from '../../../types/navidrome';
-import type { LibraryStageToolsPort } from './ports';
 
 // src/library/core/contracts/home.ts
 // 首页 surface 的数据契约：应用的首页模型（buildHomeModel）交给任何一套 suite 的同一份输入——账户与在线歌单、
@@ -80,8 +79,6 @@ export interface LibraryHomeData {
     theme: Theme;
     onOpenSettings?: (initialTab?: 'help' | 'options') => void;
     onOpenLattice?: () => void;
-    /** 墙上工具面板的宿主动作（生成主题、队列洗牌、音量预览）；身份稳定。宿主交给 stage（见 LibrarySuiteStageProps.tools）。 */
-    stageTools?: LibraryStageToolsPort;
     navidromeEnabled?: boolean;
     onPlayAll?: (songs: SongResult[]) => void;
     onAddAllToQueue?: (songs: SongResult[], options?: { suppressToast?: boolean }) => number | void;

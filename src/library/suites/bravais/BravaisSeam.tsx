@@ -1,4 +1,4 @@
-import React, { type RefObject } from 'react';
+import React, { useCallback, useRef, type RefObject } from 'react';
 import { motion, type MotionValue } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import type { BravaisLayer } from './bravaisLayer';
@@ -77,6 +77,10 @@ const BravaisSeam: React.FC<BravaisSeamProps> = ({
     const tabLabel = currentLayer?.seam.title ?? '';
     const keyboardWindow = useBravaisAccountStore(selectBravaisAccountKeyboardWindow);
     const hideLeaving = leaving || (isAccountVariant(targetVariant) && !isAccountVariant(variant));
+    // 渲染时就写：缝里的内容卸载（cleanup）时读到的已经是这一轮的当前层。
+    const currentLayerKeyRef = useRef<string | null>(null);
+    currentLayerKeyRef.current = currentLayer?.key ?? null;
+    const currentLayerKey = useCallback(() => currentLayerKeyRef.current, []);
     return (
         <>
             <div
@@ -97,7 +101,7 @@ const BravaisSeam: React.FC<BravaisSeamProps> = ({
                         data-bravais-seam-leaving={hideLeaving || undefined}
                     >
                         <BravaisSeamNavigation.Provider value={navigation}>
-                            <BravaisSeamContent variant={variant} layer={layer} depth={navigation.depth} actions={{ setLevel, openList, panel, openShortcut }} />
+                            <BravaisSeamContent variant={variant} layer={layer} depth={navigation.depth} actions={{ setLevel, openList, panel, openShortcut, currentLayerKey }} />
                         </BravaisSeamNavigation.Provider>
                     </motion.div>
                 </div>

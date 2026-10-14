@@ -22,7 +22,8 @@ import LyricSegmentationLineList from './LyricSegmentationLineList';
 
 // src/components/command-palette/surfaces/LyricSegmentationSurfaceView.tsx
 // The lyric segmentation editor. Two ways in — run the configured model, or paste a result back
-// from one the user ran themselves — plus a reset to the default Intl.Segmenter split.
+// from one the user ran themselves — plus a reset to the default split (icu-folia, see
+// utils/lyrics/icuFolia; plain Intl.Segmenter until its engines have loaded).
 //
 // Height is CSS-resolved throughout: the palette body is a fixed box and nothing here measures it.
 

@@ -288,6 +288,26 @@ describe('finding a model already on the machine', () => {
         expect(existsSync(path.join(elsewhere, model.file))).toBe(false);
     });
 
+    it('deletes a model under every name it resolves by, not just the first', async () => {
+        // htdemucs resolves as htdemucs-v2.onnx or the htdemucs.onnx older apps downloaded. Deleting
+        // only the first would leave the page saying installed off the second.
+        const htdemucs = { name: 'htdemucs', file: 'htdemucs-v2.onnx', enables: 'stems', license: 'test',
+            bytes: goodBytes.length, sha256: sha256(goodBytes) };
+        manifest.models.push(htdemucs);
+        try {
+            writeFileSync(path.join(downloadDir, 'htdemucs-v2.onnx'), goodBytes);
+            writeFileSync(path.join(downloadDir, 'htdemucs.onnx'), goodBytes);
+
+            const result = await makeStore().removeAll();
+
+            expect(result.removed).toEqual(['htdemucs']);
+            expect(result.freed).toBe(2 * goodBytes.length);
+            expect(readdirSync(downloadDir)).toEqual([]);
+        } finally {
+            manifest.models.pop();
+        }
+    });
+
     it('sweeps up half-finished downloads, which nothing else ever would', async () => {
         writeFileSync(installed(), goodBytes);
         const part = `${installed()}.part`;

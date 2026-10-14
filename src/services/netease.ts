@@ -1,6 +1,11 @@
 import { NeteaseUser, NeteasePlaylist, NoCopyrightRecommendation, SongPrivilege, SongResult } from "../types";
 import { readProviderSessionValue, removeProviderSessionValue, writeProviderSessionValue } from './onlineMusic/providerStorage';
 import type { PersonalFmRequestOptions } from '../types/onlineMusic';
+import {
+  isNeteaseRouteMissingResponse,
+  NETEASE_API_BASE_MISSING,
+  neteaseUpstreamNetworkError,
+} from './onlineMusic/neteasePlaybackFailure';
 
 type UnavailableSongReplacement = {
   replacementSong: SongResult;
@@ -97,7 +102,11 @@ const getApiBase = async () => {
     return API_BASE;
   }
 
-  throw new Error("Failed to access environment variables for API base. Please configure VITE_NETEASE_API_BASE.");
+  // code 标签让 provider 认出“未配置”（持久，不是暂时失败）；message 原文不变，诊断依赖它。
+  throw Object.assign(
+    new Error("Failed to access environment variables for API base. Please configure VITE_NETEASE_API_BASE."),
+    { code: NETEASE_API_BASE_MISSING },
+  );
 };
 
 const fetchWithCreds = async (endpoint: string, options: RequestInit = {}) => {
@@ -164,7 +173,11 @@ const fetchWithCreds = async (endpoint: string, options: RequestInit = {}) => {
     res = await fetch(finalUrl, { ...defaultOptions, credentials: 'include' });
   } catch (error) {
     // 连 API 本身都没连上（本地后端退出、远端 API 不可达），不是网易上游的失败：说清是哪个接口，原始错误挂在 cause 上。
-    throw new Error(`NetEase API request ${target} failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+    // networkFailure 标签供 provider 归为 network；message 原文不变，二维码诊断依赖它。
+    throw Object.assign(
+      new Error(`NetEase API request ${target} failed: ${error instanceof Error ? error.message : String(error)}`, { cause: error }),
+      { networkFailure: true },
+    );
   }
   // 照旧不看 HTTP 状态（错误也以 JSON 的 code 返回，调用方看 code）；只是正文不是 JSON 时，
   // 报出状态码与正文开头，而不是一句看不出来源的 SyntaxError。
@@ -173,7 +186,11 @@ const fetchWithCreds = async (endpoint: string, options: RequestInit = {}) => {
   try {
     data = JSON.parse(body);
   } catch {
-    throw new Error(`NetEase API ${target} returned HTTP ${res.status} without a JSON body: ${body.slice(0, 200) || '(empty)'}`);
+    // httpStatus 标签供 provider 区分服务异常（≥500）与形态错误（<500）。
+    throw Object.assign(
+      new Error(`NetEase API ${target} returned HTTP ${res.status} without a JSON body: ${body.slice(0, 200) || '(empty)'}`),
+      { httpStatus: res.status },
+    );
   }
 
   if (!storedCookie && cookieToUse && (data?.code === 301 || data?.code === 401 || data?.code === 403)) {
@@ -461,9 +478,32 @@ const getSongDetail = async (ids: number[] | number) => {
   return res;
 };
 
-const getSongCopyrightRecommendation = async (songId: number) => {
-  const result = await fetchWithCreds(`/song/copyright/rcmd?songid=${songId}`);
-  return normalizeUnavailableSongReplacement(result);
+// 先看原始响应：只有路由缺失（routeMissing）才算接口不支持；上游网络失败抛 OmniError，
+// 不当成“没有替代版本”。
+// 路由缺失有两种形态：部署里真的没有这个路由时，Express 默认回 HTML 404（Cannot GET ...），不是 JSON，
+// fetchWithCreds 解析失败会打上 httpStatus 404 的标签；以及本地 API 的 Not Found JSON 形态。
+const getSongCopyrightRecommendation = async (
+  songId: number
+): Promise<{ replacement: UnavailableSongReplacement | null; routeMissing: boolean }> => {
+  let result: any;
+  try {
+    result = await fetchWithCreds(`/song/copyright/rcmd?songid=${songId}`);
+  } catch (error) {
+    if ((error as { httpStatus?: unknown } | null)?.httpStatus === 404) {
+      return { replacement: null, routeMissing: true };
+    }
+    throw error;
+  }
+  if (isNeteaseRouteMissingResponse(result)) {
+    return { replacement: null, routeMissing: true };
+  }
+
+  const upstreamError = neteaseUpstreamNetworkError(result, 'replacement');
+  if (upstreamError) {
+    throw upstreamError;
+  }
+
+  return { replacement: normalizeUnavailableSongReplacement(result), routeMissing: false };
 };
 
 // Resolves an alternate playable song while keeping legacy APIs as the primary path.
@@ -503,8 +543,9 @@ const getUnavailableSongReplacement = async (
     return null;
   }
 
+  let recommendationError: unknown = null;
   try {
-    const replacement = await getSongCopyrightRecommendation(Number(song.id));
+    const { replacement, routeMissing } = await getSongCopyrightRecommendation(Number(song.id));
     if (replacement) {
       songCopyrightRecommendationApiSupported = true;
       return {
@@ -513,17 +554,20 @@ const getUnavailableSongReplacement = async (
       };
     }
 
-    if (!isElectronRuntime()) {
+    // 只有路由缺失才在本会话内关掉这个查询；一次网络失败或没有替代版本都不算接口不支持。
+    if (routeMissing && !isElectronRuntime()) {
       songCopyrightRecommendationApiSupported = false;
     }
-  } catch {
-    if (!isElectronRuntime()) {
-      songCopyrightRecommendationApiSupported = false;
-    }
+  } catch (error) {
+    recommendationError = error;
   }
 
   if (detailError) {
     throw detailError;
+  }
+
+  if (recommendationError) {
+    throw recommendationError;
   }
 
   return null;

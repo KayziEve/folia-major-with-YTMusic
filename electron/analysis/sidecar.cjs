@@ -79,7 +79,7 @@ const floatsFrom = (buf) => {
  *
  * @param pythonExe absolute path to the runtime's interpreter
  * @param script    absolute path to htdemucs_runner.py (ships with the app)
- * @param modelPath absolute path to htdemucs.onnx
+ * @param modelPath absolute path to htdemucs-v2.onnx (or the older htdemucs.onnx)
  * @param left,right equal-length Float32Array, the raw stereo mix at 44100
  */
 const separate = async ({ pythonExe, script, modelPath, left, right }) => {

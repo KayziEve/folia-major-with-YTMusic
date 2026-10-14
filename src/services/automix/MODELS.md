@@ -1,20 +1,20 @@
 # Automix — 两个模型的改动
 
-本目录用到两个神经网络：拍点检测 `beat_this.onnx` 与人声分离 `htdemucs.onnx`。
+本目录用到两个神经网络：拍点检测 `beat_this.onnx` 与人声分离 `htdemucs-v2.onnx`。
 两者都不进安装包，由设置页按需下载（清单见 `shared/modelManifest.json`，下载与校验在
 `electron/analysis/`）。
 
-**结论：`beat_this.onnx` 与上游逐字节一致；`htdemucs.onnx` 在 Meta 原版上叠了三层改动，
-仅最后一层由本仓库完成。**
+**结论：`beat_this.onnx` 与上游逐字节一致；`htdemucs-v2.onnx` 在 Meta 原版上叠了四层改动，
+后两层由本仓库完成。**
 
 | | beat_this | htdemucs |
 | --- | --- | --- |
 | 上游 | [mosynthkey/beat_this_cpp](https://github.com/mosynthkey/beat_this_cpp) | [itamiArika/htdemucs-int8-memory](https://huggingface.co/itamiArika/htdemucs-int8-memory) |
 | 原始作者 | CPJKU，ISMIR 2024 | Meta Research |
 | 授权 | MIT | MIT |
-| 下载体积 | 83.1 MB | 108.6 MB |
+| 下载体积 | 83.1 MB | 107.9 MB |
 | 本仓库改过吗 | **没有** | **改过，见 §2** |
-| 跑在哪 | worker 进程内 onnxruntime-node，WebGPU | 独立 Python 进程，CPU |
+| 跑在哪 | worker 进程内 onnxruntime-node，WebGPU | 独立 Python 进程，CPU；STFT/iSTFT 在 numpy |
 
 ---
 
@@ -33,10 +33,10 @@
 
 ---
 
-## 2. htdemucs：三层改动叠在原版上
+## 2. htdemucs：四层改动叠在原版上
 
-Meta 原版 htdemucs 是 PyTorch 检查点 + `demucs` 包，非单文件模型。当前 108.6 MB 的 `.onnx`
-是三层改动叠加的结果，**仅最后一层（段长砍半）由本仓库完成**：
+Meta 原版 htdemucs 是 PyTorch 检查点 + `demucs` 包，非单文件模型。当前 107.9 MB 的 `.onnx`
+是四层改动叠加的结果，**后两层（段长砍半、FFT 移出图）由本仓库完成**：
 
 | 层 | 谁做的 | 体积 | 图优化峰值 | 单窗口运行峰值 | 30s 窗口耗时 |
 | --- | --- | --- | --- | --- | --- |
@@ -44,6 +44,7 @@ Meta 原版 htdemucs 是 PyTorch 检查点 + `demucs` 包，非单文件模型�
 | ② fp16 权重 | 第三方 | 165.6 → 130.0 MB | — | 不变 | 不变 |
 | ③ transparent 重导出 | 第三方 | 130.0 MB | 4594 MB → **353 MB** | 909 → 783 MB | 慢 ~15% |
 | ④ **段长砍半** | **本仓库** | 130.0 → **108.6 MB** | — | 789 → **483 MB** | **快 19%** |
+| ⑤ **FFT 移出图** | **本仓库** | 108.6 → **107.9 MB** | — | 不变 | **快 14%**（4.9 → 4.2 s） |
 
 ### 2.1 ② fp16 权重
 
@@ -104,6 +105,29 @@ DFT 算子，节点数从 **24917 降到 1556**。
 **代码侧零改动。** `htdemucs_runner.py` 的 `segment_of()` 直接向模型查询段长
 （`sess.get_inputs()[0].shape[2]`），而非旁置常量——换模型文件即生效，重叠、三角窗、分段数
 自动跟随。旁置一份常量会导致两处不一致，且属静默出错而非崩溃。
+
+### 2.4 ⑤ FFT 移出图 —— 本仓库所做
+
+`build/htdemucs_cut_fft.py` 删掉图里仅有的两个 DFT 及其专属前后处理（前 12 个节点、后 26 个），
+由 `htdemucs_runner.py` 的 `stft_head` / `istft_tail` 用 numpy 完成。模型输入变为
+`mix` + `mix_spec`（mix 的单边频谱），输出变为 `stems_spec`（频谱分支，逆变换之前）+
+`stems_time`（时域分支）。runner 按输入输出个数识别，未切的模型照常可跑。
+
+**文件改名为 `htdemucs-v2.onnx`**：此前的 app 跑不了切过的模型，若在镜像上覆盖 `htdemucs.onnx`，
+它们的下载会全部卡在哈希校验上。旧名 `htdemucs.onnx` 仍算已安装（`modelPaths.cjs` 的 `MODEL_FILES`），
+已下载过的用户照常分离，只是拿不到提速。
+
+**为什么：Intel Mac。** iSTFT 的 DFT 同时设了 `inverse` 与 `onesided`，onnxruntime 1.25 之前在
+形状推断阶段拒收（1.22、1.23 实测加载失败）；而 1.25 起不再提供 macOS x86_64 wheel。移出图后，
+Intel Mac 用 1.23.2（最后一个有 x86_64 wheel 的版本，需 macOS 13+），其余平台仍用 1.29。
+
+**顺带更快：** numpy 的实数 FFT 比 ORT 的 DFT 算子快。30 s 窗口、M4、4 线程、ORT 1.29：
+4.9 s → 4.2 s（其中逆变换贡献约 0.55 s，正变换约 0.13 s）。
+
+**验证：** 被删常量（分析窗、合成窗、窗平方归一化）均由 n 与帧数算出，与图内常量相对误差 ≤ 4e-8。
+同一首 30 s 真实音乐，对未切模型 + ORT 1.29 的四轨输出：ORT 1.29 为 123.0 dB SNR / 最大误差 6.1e-7，
+ORT 1.23.2 为 122.0 dB，Intel 运行时包经 Rosetta（x86_64）为 121.8 dB——浮点舍入量级，
+**不再逐比特一致**。纯数值等价改写，不涉及上下文或段长，故未做盲听。
 
 ---
 
@@ -170,9 +194,12 @@ setter；自编 C++ 二进制会撞同一堵墙。因此 app 额外下载一个�
 
 ## 6. 改模型文件时要动什么
 
-1. 运行手术脚本：`python build/htdemucs_halve_segment.py htdemucs-7.8s.onnx models/htdemucs.onnx`
-   （需一个装有 `onnx` 的 Python——**随 app 下发的运行时刻意未装**，其只需 `onnxruntime`）。
-   输出逐次运行字节一致。
+1. 依次运行两个手术脚本（需一个装有 `onnx` 的 Python——**随 app 下发的运行时刻意未装**，
+   其只需 `onnxruntime`）。输出逐次运行字节一致。
+   ```
+   python build/htdemucs_halve_segment.py htdemucs-7.8s.onnx htdemucs-halved.onnx
+   python build/htdemucs_cut_fft.py htdemucs-halved.onnx models/htdemucs-v2.onnx
+   ```
 2. 更新 `shared/modelManifest.json` 中该条目的 `bytes` 与 `sha256`。**哈希是此清单的重点。**
    被截断或被镜像替换的 ONNX 不会显式失败——它会加载成功，然后自信地给出错误答案。
 3. 重新上传到三条镜像（hf-mirror → hf → github，外加两个网盘兜底）。
@@ -186,6 +213,17 @@ setter；自编 C++ 二进制会撞同一堵墙。因此 app 额外下载一个�
 - **beat_this 切 CPU 开关**——面向「打游戏要求零显卡占用」的用户。当前占 ~580MB 显存 / 22%
   利用率 / 亚秒延迟，对游戏近乎无感，故非必需。
 - **再缩一档段长**——3.9s 已低于 500MB，再缩收益递减且上下文继续变短，需新一轮盲听方可确定。
+- **迁移到 MNN、拿掉 Python 运行时**——**触发条件：再有新模型加进来时启动，不再往 Python 壳子里加东西。**
+  Python 进程只为 onnxruntime 一个开关存在（`enable_mem_reuse`，见 `htdemucs_runner.py` 顶部），
+  代价是一份按平台分发的 35–60 MB 运行时、「模型在但运行时缺」这一类状态，以及被 onnxruntime 的
+  wheel 支持面牵着走（Intel Mac 就是这么丢的，靠 ⑤ 才补回来）。在 onnxruntime 里提速要写自定义算子：
+  按它的 C API 写、按「平台 × ORT 版本」各编一个动态库再注册进去，做算子融合则要从源码编 ORT 本身——
+  运行时构建从「只下现成 wheel」变成要编原生代码。MNN 的自定义算子同样要按平台编，区别在于 MNN 本就以
+  原生库编进 app，算子随之一起编，不额外多一条构建。MNN 原型（在仓库外验证，M4，30 s）：fp16 2.3 s
+  （本仓库现为 4.2 s，fp32）；同为 2 线程时 CPU 时间约为 ORT 的 40%（4.7 vs 11.4 核·秒）——精度
+  不同（fp16 对 fp32），且只在有 SME 的 M4 上测过，其他 CPU 待测。无需单独下载运行时；
+  自写算子有 NEON / SSE2 / AVX2 三套实现，x86 可用。待补：Windows / Linux 真机、Intel Mac 真机、
+  模型改为 fp16 存储（当前 fp32 190 MB）、接入 app 与 CI。
 - **int8 权重**——已排除。仅省权重体积、不减激活；上游自述 fp16 权重运行时内存不变，可作佐证。
 
 > 纪律：每项单独复测内存 + 盲听，**一次只加一项、单独衡量增益**，否则无法归因。

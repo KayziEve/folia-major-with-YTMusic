@@ -27,6 +27,8 @@ import { useBravaisKeyboard } from './useBravaisKeyboard';
 import { useBravaisBlockPlates } from './useBravaisBlockPlates';
 import { useBravaisReflowDriver } from './useBravaisReflowDriver';
 import { useBravaisPlayerSafeArea } from './useBravaisPlayerSafeArea';
+import { useBravaisPosterTilt } from './useBravaisPosterTilt';
+import { albumPaletteVars, posterPaletteVars, resolvePosterPaletteSources, useBravaisPosterPalette } from './bravaisPosterPalette';
 import { useBravaisSeam } from './useBravaisSeam';
 import { useBravaisViewport } from './useBravaisViewport';
 import { closeCommandFilter } from '../../../stores/useAppViewStore';
@@ -84,6 +86,18 @@ const expandBounds = (bounds: { left: number; right: number; top: number; bottom
     bottom: bounds.bottom + by,
 });
 
+/**
+ * 海报的取色来源（bravaisPosterPalette）：歌手页从这位歌手最火的三张专辑封面取；专辑页从这张专辑的封面取（专辑里有
+ * 带自己封面的歌时，再补上它们）。
+ */
+const posterPaletteSourcesFor = (target: BravaisLayer | null): readonly string[] => {
+    if (!target) return NO_SOURCES;
+    const sources = resolvePosterPaletteSources(target.items);
+    const albumCover = target.seam.album?.coverUrl;
+    return albumCover ? [albumCover, ...sources.filter(url => url !== albumCover)].slice(0, 3) : sources;
+};
+const NO_SOURCES: readonly string[] = [];
+
 const BravaisStage: React.FC<LibrarySuiteStageProps> = ({
     isInteractive,
     isDaylight,
@@ -94,7 +108,6 @@ const BravaisStage: React.FC<LibrarySuiteStageProps> = ({
     onTogglePlayback,
     onEnterPlaybackView,
     onOpenLattice,
-    tools,
 }) => {
     const { t } = useTranslation();
     // 交接会话：缝的开口、veil、颗粒与暗角、磁贴藏不藏都按它（纯计算）；排动画的 hook 在下面（要等显示）。
@@ -162,6 +175,8 @@ const BravaisStage: React.FC<LibrarySuiteStageProps> = ({
             panelOpen: current.panelFor === target.key && Boolean(target.entries?.hasPanel),
             filterOpen: current.filterOpen,
             searchOpen: current.searchOpen,
+            // 海报（歌手页、专辑页）只画在无限拼贴上：过滤生效（有限拼贴）时 rank 围着锚点两边排，海报会挡住一半。
+            poster: (target.surface === 'artist' || Boolean(target.seam.album)) && target.mode !== 'finite',
         };
     }, [frameRef]);
     const resolvedSeamTarget = layer
@@ -174,6 +189,9 @@ const BravaisStage: React.FC<LibrarySuiteStageProps> = ({
     const seamTarget = handoff.seamClosed ? { width: 0, variant: resolvedSeamTarget.variant } : resolvedSeamTarget;
     const openWidthFor = useCallback((target: BravaisLayer) => (
         resolveStageSeamTarget(seamInputFor(target), selectBravaisAccountVariant(useBravaisAccountStore.getState())).width
+    ), [seamInputFor]);
+    const posterFor = useCallback((target: BravaisLayer) => (
+        resolveStageSeamTarget(seamInputFor(target), selectBravaisAccountVariant(useBravaisAccountStore.getState())).variant === 'poster'
     ), [seamInputFor]);
 
     const camera = useBravaisCamera({ frameRef, renderFrame, fieldRef, reducedMotion });
@@ -190,6 +208,14 @@ const BravaisStage: React.FC<LibrarySuiteStageProps> = ({
         checkCull: camera.checkCull,
     });
     const { bottomPx, getBottomInset } = useBravaisPlayerSafeArea();
+    // 歌手海报在场时整层（两半墙与缝）一起倾斜，倾斜着照样拖动、滚动（useBravaisPosterTilt）。
+    useBravaisPosterTilt({
+        frameRef,
+        renderFrame,
+        checkCull: camera.checkCull,
+        poster: seamTarget.variant === 'poster' && seamTarget.width > 0,
+        reducedMotion,
+    });
 
     // 量到视口（或尺寸变了）：写进帧状态，相机保持视图中心不动，重新裁剪；跨过窄屏阈值时缝回到新宽度的默认等级。
     useLayoutEffect(() => {
@@ -222,6 +248,7 @@ const BravaisStage: React.FC<LibrarySuiteStageProps> = ({
         navigation,
         reducedTransitions,
         openWidthFor,
+        posterFor,
         setCameraRange: camera.setRange,
         setAnchor: seam.setAnchor,
         planOpening: seam.planOpening,
@@ -406,6 +433,25 @@ const BravaisStage: React.FC<LibrarySuiteStageProps> = ({
 
     // 信息条的预设（§5「缝的材质」）：主题纸色以外的预设把材质写成根节点上的自定义属性；透明的缝不写（预设不生效）。
     const seamStyleVars = useMemo(() => (seamLook.seamStyle ? libraryWallSeamStyleVars(seamLook.seamStyle) : null), [seamLook.seamStyle]);
+    // 海报与旁边那面墙共用一套颜色（bravaisPosterPalette）：歌手页从这位歌手最火的三张专辑封面取；专辑页从这张专辑的
+    // 封面取（专辑里有带自己封面的歌时，再补上它们）。
+    const posterActive = seamTarget.variant === 'poster';
+    const albumPoster = posterActive && Boolean(layer?.seam.album);
+    const posterSources = useMemo(() => posterPaletteSourcesFor(posterActive ? layer : null), [layer, posterActive]);
+    const posterPalette = useBravaisPosterPalette(posterSources, posterActive);
+    // 缝里此刻画着的海报可能还是上一层的（换层时缝的内容晚一拍才换，约 0.2s）：它的颜色也留着，不然那一拍里它读不到
+    // 自己的颜色、回退成默认色，看着像闪了一下。歌手与专辑两套变量名不同，可以同时在。
+    const renderedPosterLayer = seam.rendered.variant === 'poster' ? seam.rendered.layer : null;
+    const lingeringPoster = renderedPosterLayer && renderedPosterLayer.key !== layer?.key ? renderedPosterLayer : null;
+    const lingeringSources = useMemo(() => posterPaletteSourcesFor(lingeringPoster), [lingeringPoster]);
+    const lingeringPalette = useBravaisPosterPalette(lingeringSources, Boolean(lingeringPoster));
+    const posterVars = useMemo(() => {
+        const varsFor = (target: BravaisLayer | null, palette: typeof posterPalette) => {
+            if (!target) return {};
+            return target.seam.album ? albumPaletteVars(palette?.album ?? null) : posterPaletteVars(palette?.artist ?? null);
+        };
+        return { ...varsFor(lingeringPoster, lingeringPalette), ...varsFor(posterActive ? layer : null, posterPalette) };
+    }, [layer, lingeringPalette, lingeringPoster, posterActive, posterPalette]);
 
     const rootClassName = [
         'lattice-root',
@@ -424,6 +470,10 @@ const BravaisStage: React.FC<LibrarySuiteStageProps> = ({
         seeThrough && BRAVAIS_SEAM_ACRYLIC_BLUR ? 'has-seam-blur' : '',
         display?.layer.seam.home?.manage ? 'is-managing-hidden' : '',
         display?.layer.home?.batch ? 'is-batch' : '',
+        // 歌手海报在场：墙上的磁贴改成海报的样子（间隔拉开、封面保持正方形，bravaisPoster.css）。
+        posterActive && !albumPoster ? 'has-poster-wall' : '',
+        // 专辑海报在场：墙上的曲目画成这张封面的拼贴或碎片（bravaisAlbumPoster.css）。
+        albumPoster ? 'has-album-wall' : '',
     ].filter(Boolean).join(' ');
 
     return (
@@ -437,6 +487,7 @@ const BravaisStage: React.FC<LibrarySuiteStageProps> = ({
                 '--bravais-focus-reveal-duration': `${WALL_REFLOW_CONTROLS_REVEAL.durationMs}ms`,
                 '--bravais-focus-reveal-rise': `${WALL_REFLOW_CONTROLS_REVEAL.risePx}px`,
                 ...seamStyleVars,
+                ...posterVars,
             } as CSSProperties}
             data-library-stage="bravais"
             data-bravais-layer={display?.layer.key}
@@ -512,7 +563,6 @@ const BravaisStage: React.FC<LibrarySuiteStageProps> = ({
                 back={back}
                 locatePlaying={chromeHandlers['locate-playing']}
                 onOpenLattice={onOpenLattice}
-                tools={tools}
             />
         </section>
     );

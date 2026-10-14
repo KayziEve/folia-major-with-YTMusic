@@ -757,18 +757,18 @@ async function runAiConnectionTest(rawInput, { customFetch, timeoutMs = AI_TEST_
   const { provider, apiKey, apiUrl: rawApiUrl, model: rawModel, stream } = validated.config;
   const startedAt = now();
   const finish = (result) => ({ durationMs: now() - startedAt, ...result });
-  const scrub = (message) => {
+  const redact = (message) => {
     let text = String(message);
     if (apiKey) {
       text = text.split(apiKey).join('***');
     }
     // Servers sometimes echo the request back: Authorization header, Gemini key header, ?key=.
-    text = text
+    return text
       .replace(/(bearer\s+)[^\s"',;]+/gi, '$1***')
       .replace(/(x-goog-api-key["']?\s*[:=]\s*["']?)[^\s"',;]+/gi, '$1***')
       .replace(/([?&](?:key|api[_-]?key|token|access_token)=)[^&\s"']+/gi, '$1***');
-    return truncateText(text, AI_TEST_MAX_ERROR_CHARS);
   };
+  const scrub = (message) => truncateText(redact(message), AI_TEST_MAX_ERROR_CHARS);
   const failure = (error, extra = {}) => finish({
     ok: false,
     error: scrub(error instanceof Error ? error.message : error),
@@ -831,7 +831,7 @@ async function runAiConnectionTest(rawInput, { customFetch, timeoutMs = AI_TEST_
       const reason = candidate && candidate.finishReason === 'MAX_TOKENS' ? 'reasoning' : 'empty';
       return finish({ ok: true, status: response.status, model: modelName, text: '', emptyReason: reason });
     }
-    return finish({ ok: true, status: response.status, model: modelName, text: truncateText(text, AI_TEST_MAX_REPLY_CHARS) });
+    return finish({ ok: true, status: response.status, model: modelName, text: truncateText(redact(text), AI_TEST_MAX_REPLY_CHARS) });
   }
 
   const apiUrl = normalizeOpenAIChatCompletionsUrl(rawApiUrl);
@@ -869,7 +869,7 @@ async function runAiConnectionTest(rawInput, { customFetch, timeoutMs = AI_TEST_
       emptyReason: exhaustedByReasoning(result.choice, result.usage) ? 'reasoning' : 'empty',
     });
   }
-  return finish({ ok: true, status: result.status, model: shownModel, text: truncateText(text, AI_TEST_MAX_REPLY_CHARS) });
+  return finish({ ok: true, status: result.status, model: shownModel, text: truncateText(redact(text), AI_TEST_MAX_REPLY_CHARS) });
 }
 
 module.exports = {

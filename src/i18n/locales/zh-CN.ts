@@ -31,20 +31,7 @@ export default {
     "crumbPlayer": "播放页",
     "tools": "墙面工具",
     "toolsLocate": "定位正在播放",
-    "toolsLocateShort": "定位",
-    "toolsShuffle": "打乱播放队列",
-    "toolsShuffleShort": "洗牌",
-    "toolsShuffleUnavailable": "队列里至少要有两首（私人 FM 中不可用）",
-    "toolsTheme": "为当前歌曲生成主题",
-    "toolsThemeShort": "主题",
-    "toolsThemeBusy": "正在生成主题…",
-    "toolsThemeBusyShort": "生成中",
-    "toolsThemeUnavailable": "需要一首正在播放、带歌词（或纯音乐）的歌",
     "toolsLattice": "前往 Lattice",
-    "toolsLatticeShort": "Lattice",
-    "toolsMute": "静音",
-    "toolsUnmute": "取消静音",
-    "toolsMuted": "已静音",
     "toolsAppearance": "墙面外观",
     "helpMove": "移动焦点（墙上 / 信息条里）",
     "helpOpen": "展开歌曲 / 打开集合",
@@ -61,6 +48,36 @@ export default {
     "helpSearch": "搜索在线平台（首页）",
     "filterPlaceholder": "过滤当前页",
     "kind": {"track": "歌曲", "playlist": "歌单", "album": "专辑", "artist": "歌手", "folder": "文件夹", "feed": "电台"}
+  },
+  "wallTools": {
+    "shuffle": "打乱播放队列",
+    "shuffleUnavailable": "队列里至少要有两首（私人 FM 中不可用）",
+    "shuffleUnavailableInStage": "外部舞台正在播放：不能打乱队列",
+    "theme": "为当前歌曲生成主题",
+    "themeBusy": "正在生成主题…",
+    "themeUnavailable": "需要一首正在播放、带歌词（或纯音乐）的歌",
+    "mute": "静音",
+    "unmute": "取消静音",
+    "muted": "已静音",
+    "queue": "播放队列",
+    "queueShow": "显示播放队列",
+    "queueHide": "收起播放队列",
+    "queueUnavailableInFm": "私人 FM 没有可编辑的队列",
+    "queueStageReadOnly": "外部舞台正在播放：可以点歌，不能编辑队列",
+    "queueIsland": "播放队列",
+    "queueCount_one": "播放队列 · {{count}} 首",
+    "queueCount_other": "播放队列 · {{count}} 首",
+    "queueClear": "清空队列",
+    "queueClearConfirm": "再点一次清空",
+    "queueSave": "存为本地歌单",
+    "queueSaved": "已存为本地歌单「{{name}}」",
+    "queueSaveFailed": "歌单没能保存",
+    "queueDragHandle": "拖动排序",
+    "queueMoved": "已移到第 {{position}} 首",
+    "openPlayer": "前往播放页",
+    "openPlayerUnavailable": "还没有在播放的歌",
+    "goHome": "回到主页",
+    "wallSection": "墙面"
   },
   "libraryBravaisHome": {
     "hide": "隐藏",
@@ -356,6 +373,19 @@ export default {
     "loginExpired": "登录状态已失效，请重新登录",
     "songPreviewOnly": "当前账号仅可试听此歌曲，请登录具有完整播放权限的账号",
     "songRegionRestricted": "仅限中国大陆地区播放，请检查网络环境",
+    "songTemporarilyUnavailable": "暂时无法播放这首歌",
+    "songTemporarilyUnavailableSignInHint": "暂时无法播放这首歌，登录后可能可以播放",
+    "songNetworkFailed": "连接失败，无法获取这首歌，请检查网络后重试",
+    "songRequestTimedOut": "获取歌曲超时，请稍后重试",
+    "songRetrying": "连接失败，正在重试…",
+    "songServiceUnavailable": "音源服务暂时不可用，请稍后重试",
+    "songServiceNotConfigured": "当前环境无法使用这个音源（未配置或需要桌面版）",
+    "songRateLimited": "请求过于频繁，请在 {{seconds}} 秒后重试",
+    "songRateLimitedNoWait": "请求过于频繁，请稍后重试",
+    "songLoginRequired": "登录后才能播放这首歌",
+    "songMembershipRequired": "这首歌需要会员才能播放",
+    "songPurchaseRequired": "这首歌需要购买后才能播放",
+    "songEntitlementRequired": "当前账号没有这首歌的播放权限（可能需要会员或购买）",
     "loggedOut": "已退出登录",
     "clickToPlay": "点击播放开始",
     "liked": "已添加到喜欢的音乐",
@@ -1237,7 +1267,6 @@ export default {
     "latticeLightsOn": "开灯",
     "latticeLightsOff": "关灯",
     "latticeTools": "Lattice 工具",
-    "latticeOpenQueueCommand": "打开队列命令",
     "latticeHelp": "操作提示",
     "latticeHelpPoster": "Enter 展开选中歌曲，再次 Enter 播放",
     "latticeHelpReturn": "返回",
@@ -1292,7 +1321,13 @@ export default {
     "qrTipsTitle": "可以先试试",
     "qrTipRestart": "重启 Folia，再重新扫码。",
     "qrTipSwitchNetwork": "换一个网络（例如手机热点），再重启 Folia。",
+    "qrDeviceLimit": "这个 QQ 音乐账号的登录设备数已达上限，需要先移除旧设备。",
+    "qrDeviceLimitTipsTitle": "先清理登录设备",
+    "qrDeviceLimitTipRemove": "打开 QQ 音乐官方客户端，进入「设置 → 设备管理」（在设置页最下面），移除不再使用的登录设备。",
+    "qrDeviceLimitTipQuota": "QQ 音乐限制同时登录的设备数：免费用户 1 台，绿钻 3 台，超级会员 5 台。",
+    "qrDeviceLimitTipRescan": "移除后回到 Folia，重新扫码登录。",
     "qrDiagnosticsToggle": "还是不行？把诊断信息发给我们",
+    "qrDiagnosticsToggleElsewhere": "还是不行？查看诊断信息",
     "qrDiagnosticsPrompt": "复制诊断信息反馈给我们，能帮助定位原因。",
     "qrDiagnosticsPromptScanned": "在手机上确认了却没有登录成功的话，复制诊断信息反馈给我们，能帮助定位原因。",
     "qrDiagnosticsDisclosure": "诊断信息包含：应用与系统版本、网卡与 IP 地址、代理设置、登录请求的记录与错误原文、网络检查结果。不含账号密码、cookie 和 token。",
@@ -1301,6 +1336,8 @@ export default {
     "qrDiagnosticsCopyFailed": "复制失败",
     "qrDiagnosticsReport": "去 GitHub 反馈",
     "qrDiagnosticsPasteHint": "请把 Folia 复制的诊断信息粘贴在这里，并简单描述当时的情况（网络环境、是否开了代理等）。",
+    "qrReportWebDeployment": "这是网页版部署的问题：这个网站没有配置音乐平台的 API 服务，或者连不上它。请把诊断报告交给这个网站的部署者；如果你就是部署者，请按部署文档检查 VITE_*_API_BASE 并重新构建。只想直接使用的话，可以下载官方桌面版。",
+    "qrReportUnofficialBuild": "你正在使用的不是 Folia 官方构建的版本，也不是文档里的自部署方式（可能是他人打包或修改过的版本），问题请反馈给提供这个版本的人。官方版本请从 GitHub Releases 下载。",
     "qrSelfCheckTitle": "自动检查",
     "qrSelfCheckRunning": "正在检查网络与本地服务…",
     "qrSelfCheckFailed": "自动检查没能完成：{{message}}",
@@ -2527,6 +2564,9 @@ export default {
     "useSystemProxyAIDesc": "仅将AI相关的网络请求通过系统代理路由。",
     "geminiApiKey": "Gemini 密钥",
     "openaiApiKey": "密钥",
+    "aiApiKeySavedPlaceholder": "已保存（留空则保持不变）",
+    "aiApiKeySavedDesc": "密钥已加密保存在本机，不会再显示。输入新密钥并保存可替换。",
+    "aiApiKeyClear": "清除",
     "openaiApiUrl": "OpenAI 接口链接",
     "openaiApiModel": "模型",
     "openaiApiModelDesc": "例如 gpt-5.6-luna、gpt-4.1-mini、deepseek-v4-flash。",
@@ -2536,7 +2576,7 @@ export default {
     "openaiApiStreamDesc": "仅当提供商要求流式时开启；结果仍在完整接收后解析。",
     "aiTestConnection": "测试连接",
     "aiTestRunning": "测试中...",
-    "aiTestConnectionDesc": "用当前表单中的值（无需先保存）向终结点发送一条 hello。",
+    "aiTestConnectionDesc": "用当前表单中的值（无需先保存）向终结点发送一条 hello；密钥留空时使用已保存的密钥。",
     "aiTestSuccess": "连接成功",
     "aiTestFailed": "连接失败",
     "aiTestDuration": "耗时",
@@ -2776,6 +2816,8 @@ export default {
     "linuxManualUpdateNotice": "提示：Linux 不支持自动更新。请下载完整的 deb、rpm 或 tar.gz 包手动升级；仅正式版且通过 AUR 安装的用户可使用包管理器升级 folia-major-bin。",
     "manualUpdateNotice": "提示：当前平台暂不支持自动更新，请下载安装包手动覆盖更新。",
     "versionCopiedHint": "点击复制版本信息",
+    "unofficialBuildNotice": "非官方构建：这个版本既不是 Folia 仓库的 CI 构建的，也不是文档里的自部署方式（Docker、Vercel、Cloudflare），可能经过他人修改或缺少后端服务。遇到问题请先联系提供者，官方版本请从 GitHub Releases 下载。",
+    "selfHostedBuildNotice": "自部署版本：由部署者自行构建并托管，音乐平台的后端服务也由部署者配置。遇到问题请先联系部署者；确认是 Folia 本身的问题再到 GitHub 反馈。",
     "versionCopiedToast": "已复制",
     "stageConnected": "Stage 已连接",
     "nowPlayingConnectedStatus": "Now Playing 已连接",
@@ -2979,6 +3021,91 @@ export default {
         "description": "登录后，自己创建的不公开歌单也能读取歌曲，并支持真正的分页加载。自建后端需要升级到 qq-music-api 3.1.2 或更新版本；旧后端会自动回退，读不到时会明确提示「不是公开歌单」，不再静默显示为空。"
       }
     },
+    "v0_7_176": {
+      "intro": "0.7.176 合入原作者 0.7.18 和 0.7.19 的更新，并保留此 Fork 的桌面版 YouTube Music 接入。新增 Bravais 歌手与专辑海报、播放失败原因说明、中日文歌词分词优化、网页离线启动、桌面 AI 密钥加密保存等改进。",
+      "artistPoster": {
+        "title": "歌手页变成海报",
+        "description": "Bravais 歌手页的完整信息条画成一张凝彩风格的海报，钉在墙的左边：构图按歌手固定，配色取自这位歌手最热门的三张专辑；名字按宽度自动缩放，不会溢出。右边的专辑墙随之倾斜，倾斜着也能照常拖动和滚动。"
+      },
+      "albumPoster": {
+        "title": "专辑页海报与封面拼贴",
+        "description": "专辑页同样换成海报：封面贴在点阵纸上，配上带立体残影的大标题和歌手、年份、曲目数，打开时有一段入场动画。从歌手页点开专辑，封面会从被点的那张磁贴飞到海报上，返回时再飞回原位。旁边墙上的曲目：整张专辑只有一张封面时拼成一整张大封面；专辑里混有单曲封面时，重复的封面切成碎片，悬停或正在播放时恢复原色。"
+      },
+      "playbackFailure": {
+        "title": "播放失败会说明原因",
+        "description": "在线歌曲播放失败不再一律显示「歌曲已下架」，而是区分下架、网络中断或超时、服务异常或限流、需要登录 / 会员 / 购买、地区限制等原因。只有真正下架时才倒计时跳到下一首并查找替代版本；断网时会停下来保留队列，可以重试或跳过；需要登录、会员或购买时只做提示，不反复重试。网易云、QQ 音乐、酷狗和波点都已支持。"
+      },
+      "lyricSegmenter": {
+        "title": "中文、日文歌词分词更自然",
+        "description": "凝彩、商籁等按词排版的模式改用新的默认分词 icu-folia：中文不再被切碎（「千言万语」「口袋」保持完整，「的」「了」跟着前一个词），日文按文节切分。凝彩也不会再把「我想你」这样连在一起的单字拆到不同镜头里。你手动保存的分词仍然优先；分词词典只在用到时才加载。"
+      },
+      "offlineStartup": {
+        "title": "网页版断网也能启动",
+        "description": "修复网页版 / PWA 断网后刷新打不开的问题，本地封面在离线时也能正常显示，首次打开也不必等后台缓存下载完才显示本地封面。主题里用到的图标改为按需加载，启动时下载的内容更少。"
+      },
+      "stabilityFixes": {
+        "title": "更稳定的细节",
+        "description": "Android 上在 Bravais / Lattice 墙面打开设置等覆盖层时，不再闪出底下的墙；凝彩播放时调整窗口大小偶尔崩溃的问题已修复；Sora 背景在暂停时停止绘制，静态模式下星点定格；启动时弹出的版本更新窗口可以按 Esc 关闭。"
+      }
+    ,
+      "ytmusicDesktop": {
+        "title": "桌面版支持 YouTube Music",
+        "description": "连接 YouTube Music 账号后，可以搜索、播放歌曲并浏览个人歌单。当前接入暂不提供 YouTube Music 歌词。"
+      }},
+    "v0_7_19": {
+      "intro": "0.7.19 把 Bravais 的歌手页和专辑页做成了凝彩风格的海报；在线播放失败时会说明真正的原因，不再一律报「已下架」；凝彩等按词排版的模式对中文、日文的分词更自然；网页版断网也能正常启动。",
+      "artistPoster": {
+        "title": "歌手页变成海报",
+        "description": "Bravais 歌手页的完整信息条画成一张凝彩风格的海报，钉在墙的左边：构图按歌手固定，配色取自这位歌手最热门的三张专辑；名字按宽度自动缩放，不会溢出。右边的专辑墙随之倾斜，倾斜着也能照常拖动和滚动。"
+      },
+      "albumPoster": {
+        "title": "专辑页海报与封面拼贴",
+        "description": "专辑页同样换成海报：封面贴在点阵纸上，配上带立体残影的大标题和歌手、年份、曲目数，打开时有一段入场动画。从歌手页点开专辑，封面会从被点的那张磁贴飞到海报上，返回时再飞回原位。旁边墙上的曲目：整张专辑只有一张封面时拼成一整张大封面；专辑里混有单曲封面时，重复的封面切成碎片，悬停或正在播放时恢复原色。"
+      },
+      "playbackFailure": {
+        "title": "播放失败会说明原因",
+        "description": "在线歌曲播放失败不再一律显示「歌曲已下架」，而是区分下架、网络中断或超时、服务异常或限流、需要登录 / 会员 / 购买、地区限制等原因。只有真正下架时才倒计时跳到下一首并查找替代版本；断网时会停下来保留队列，可以重试或跳过；需要登录、会员或购买时只做提示，不反复重试。网易云、QQ 音乐、酷狗和波点都已支持。"
+      },
+      "lyricSegmenter": {
+        "title": "中文、日文歌词分词更自然",
+        "description": "凝彩、商籁等按词排版的模式改用新的默认分词 icu-folia：中文不再被切碎（「千言万语」「口袋」保持完整，「的」「了」跟着前一个词），日文按文节切分。凝彩也不会再把「我想你」这样连在一起的单字拆到不同镜头里。你手动保存的分词仍然优先；分词词典只在用到时才加载。"
+      },
+      "offlineStartup": {
+        "title": "网页版断网也能启动",
+        "description": "修复网页版 / PWA 断网后刷新打不开的问题，本地封面在离线时也能正常显示，首次打开也不必等后台缓存下载完才显示本地封面。主题里用到的图标改为按需加载，启动时下载的内容更少。"
+      },
+      "stabilityFixes": {
+        "title": "更稳定的细节",
+        "description": "Android 上在 Bravais / Lattice 墙面打开设置等覆盖层时，不再闪出底下的墙；凝彩播放时调整窗口大小偶尔崩溃的问题已修复；Sora 背景在暂停时停止绘制，静态模式下星点定格；启动时弹出的版本更新窗口可以按 Esc 关闭。"
+      }
+    },
+    "v0_7_18": {
+      "intro": "0.7.18 给 Bravais 与 Lattice 的墙面工具加上可以直接操作的播放队列，工具面板也统一成同一套布局；多个歌词可视化模式更省资源，本地歌曲连续播放切歌更顺，QQ 扫码遇到登录设备超限会直接告诉你怎么处理，桌面版的 AI 密钥改为加密保存。",
+      "queueIsland": {
+        "title": "墙面上直接管理播放队列",
+        "description": "在 Bravais 或 Lattice 右下角的「墙面工具」里点「播放队列」，面板上方会展开队列：点歌直接播放、不跳页，拖动手柄排序，悬停可下一首播放、移到末尾或移除，还能存为本地歌单或两步确认清空。键盘可用 ↑↓ 移动、Alt+↑↓ 挪动、Delete 移除。私人 FM 下不可用，外部舞台播放时只能点歌。"
+      },
+      "wallTools": {
+        "title": "两面墙共用一套工具面板",
+        "description": "Bravais 与 Lattice 的墙面工具统一为同一套布局：顶上一排六个快捷格（定位正在播放、打乱队列、生成主题、播放队列、前往 Lattice 或回到主页、前往播放页），下面是音量、墙面外观、海报叠色与灯光。面板更紧凑，Lattice 原来的「队列命令」由队列浮岛取代。"
+      },
+      "visualizerPerf": {
+        "title": "歌词可视化更省资源",
+        "description": "商籁、凝彩、绘光、心象、回环、莫奈、时计与 Latent 背景等模式减少了每帧的重复计算；时计的齿轮装饰改用 WebGL2 绘制，调商籁的设置不再重建画布。反复切换模式时会及时释放图形上下文，不再挤掉其它可视化。"
+      },
+      "localPlayback": {
+        "title": "本地歌曲切歌更顺",
+        "description": "连续播放本地歌曲时，切到下一首不再卡一下：预先准备好的封面与在线匹配结果会直接用上，不再在切歌时重新提取封面、重新联网匹配；曲库较大时切歌也更快。"
+      },
+      "qqDeviceLimit": {
+        "title": "QQ 扫码提示清理登录设备",
+        "description": "QQ 音乐账号登录设备已满导致扫码失败时，登录面板会直接说明原因，并给出清理设备的步骤（QQ 音乐「设置 → 设备管理」移除旧设备后重新扫码），不再误报为网络问题。网页版目前只能识别微信扫码的这种情况。"
+      },
+      "aiKeySecure": {
+        "title": "桌面版 AI 密钥加密保存",
+        "description": "桌面版的 Gemini / OpenAI 密钥改用系统的安全存储加密保存，旧版本留下的明文会在启动时自动迁移。保存后不再回显，留空即保持不变，替换需输入新密钥，清除是单独的按钮；测试连接时留空会使用已保存的密钥。"
+      }
+    },
     "v0_7_175": {
       "intro": "0.7.175 合并了 0.7.17「Spica」重大更新与桌面版 YouTube Music 接入，并改进了命令面板的键盘浏览体验。",
       "bravais": {
@@ -3014,6 +3141,7 @@ export default {
         "description": "在命令面板中用方向键移动时，列表会自动滚动，让当前选中结果保持可见。"
       }
     },
+
     "v0_7_16": {
       "intro": "0.7.16 把 AMLL 歌词切到官方接口，QQ 音乐歌曲能找到的 AMLL 歌词更多，手动匹配也能直接搜 AMLL；另外新增首页用 Tab 切换页签，并修复本地搜索结果缺少专辑与歌手链接的问题。",
       "amllSource": {
@@ -3443,7 +3571,12 @@ export default {
     "albumsSyncing": "专辑加载中 {{loaded}} / {{total}}",
     "albumsSyncingOpen": "专辑加载中… {{loaded}}",
     "albumsInterrupted": "专辑停在第 {{loaded}} 张",
-    "panelTitle": "热门歌曲与专辑"
+    "panelTitle": "热门歌曲与专辑",
+    "posterLabel": "歌手海报",
+    "posterTopSongs": "热门歌曲"
+  },
+  "libraryBravaisAlbum": {
+    "posterLabel": "专辑海报"
   },
   "artistGrid": {
     "localArtist": "本地歌手: {{artistName}}",
@@ -4472,7 +4605,7 @@ export default {
         "filterType": "想在这面墙里找东西，直接在墙上打字：信息条里冒出一道过滤输入位，墙收成以信息条为中心、只剩匹配项的一小片。",
         "filterKeys": "过滤不联网，只收窄眼前这面墙。Esc 有词先清空，再按一次结束输入；↓ 或 Enter 把焦点交给墙上第一张。",
         "filterSearch": "放大镜才是搜索在线平台（首页上也可以按 /）：整条信息条换成带框的搜索框，提交之后去搜索页看结果。",
-        "toolsQuick": "右下角那颗是墙面工具。顶上一排是一次性动作：定位正在播放、打乱队列、为当前歌曲生成主题、前往 Lattice。",
+        "toolsQuick": "右下角那颗是墙面工具。顶上一排图标是一次性动作：定位正在播放、打乱队列、为当前歌曲生成主题、播放队列、前往 Lattice、前往播放页；指针停在图标上能看到名字和快捷键。",
         "toolsVolume": "中间是音量，和播放条上的是同一份；点左边的图标静音。",
         "toolsAppearance": "最下面是墙面外观：透光在三档之间轮换，还有海报叠色和开灯 / 关灯。向左滑这颗按钮，直接打开命令面板。"
       },
@@ -4643,7 +4776,7 @@ export default {
         "latticeFocusKeys": "方向键从视口中央选择最近海报，再按空间方向移动焦点，并自动平移相机让目标可见。",
         "latticePosterOpen": "点击或按 Enter 展开海报。当前歌曲展开后显示同步歌词；其他歌曲展开后显示标题与播放入口，队列本身不会被重排。",
         "latticeChrome": "展开海报显示播放、额外槽位、时间、进度和返回 Player；触屏点海报，键盘按 Space 显示或隐藏控制条。",
-        "latticeTools": "右下角工具依次提供：聚焦当前歌曲、切歌时自动跟随、打开队列命令、灯光开关与快捷键说明；向左滑这个按钮会打开命令面板。",
+        "latticeTools": "右下角工具和资料库墙是同一套：顶上一排图标是聚焦当前歌曲、打乱队列、生成主题、播放队列、回到主页和前往播放页，下面是音量、切歌时自动跟随、灯光开关与快捷键说明；向左滑这个按钮会打开命令面板。",
         "latticeLights": "灯光关闭后海报退暗，只保留必要层次；这是显示设置，不会暂停播放或修改队列。",
         "latticePosterKeys": "收起时 Enter/Space 展开；展开后 Enter 播放/暂停，Space 显示控制，Esc 收起。",
         "latticePageKeys": ": + C 当前歌曲；{{mod}} + P 队列；{{mod}} + B 返回；{{mod}} + K 命令；方向键移动。",

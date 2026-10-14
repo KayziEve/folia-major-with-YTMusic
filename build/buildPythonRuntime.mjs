@@ -46,43 +46,57 @@ const PBS = (triple) => 'https://github.com/astral-sh/python-build-standalone/re
  * Pinned, because this is a binary artifact users download and a floating version would mean two
  * listeners on the same app version running different inference.
  *
- * onnxruntime 1.29 is not a free choice. The model's iSTFT is a real DFT operator with `inverse`
- * and `onesided` both set, and ORT rejected that combination as a shape-inference error until
- * 1.25 - measured, 1.22 and 1.23 both refuse to LOAD the model. That floor is also what decides
- * the platform table below, because 1.25 is where the macOS x86_64 wheel stops existing.
+ * onnxruntime is pinned per TARGET (below), not here, because Intel Macs cannot have the version
+ * everyone else gets. 1.25 is where the macOS x86_64 wheel stops existing, so darwin-x64 is held at
+ * 1.23.2, the last release that has one. That was impossible while the model's iSTFT was a DFT with
+ * `inverse` and `onesided` both set - ORT rejected that combination as a shape-inference error until
+ * 1.25, and 1.22 and 1.23 refused to LOAD the model. build/htdemucs_cut_fft.py took both DFTs out of
+ * the graph (the runner does them in numpy), so the floor is gone. Everyone else stays on 1.29: on
+ * the same M4 the cut model separates a 30s window in 4.2s there and in 6.1s on 1.23.2.
  *
  * The dependency list is explicit and installed with --no-deps. onnxruntime declares more than it
- * needs to import (protobuf, sympy, coloredlogs); these five are what the runner actually touches,
- * and it is the set the hand-built runtime shipped with and ran on.
+ * needs to import (protobuf, sympy, coloredlogs); these are what the runner actually touches, and
+ * it is the set the hand-built runtime shipped with and ran on.
  */
-const WHEELS = ['onnxruntime==1.29.0', 'numpy==2.4.6', 'flatbuffers', 'packaging', 'psutil'];
+const WHEELS = ['numpy==2.4.6', 'flatbuffers', 'packaging', 'psutil'];
 const PY_TAG = '3.11';
 
 /**
  * Keyed by `${process.platform}-${process.arch}`, which is what the app asks for at runtime.
  *
- * darwin-x64 is deliberately ABSENT rather than broken. Every onnxruntime that can load this model
- * is arm64-only on macOS, and every onnxruntime with an Intel Mac wheel refuses the model, so there
- * is no build to make. A missing key is how the settings page knows to say the machine is not
- * supported instead of offering a download that could not work. Same for the arm64 Linux and
- * Windows wheels that exist upstream: electron-builder does not target those, so neither do we.
+ * A platform missing here is reported as unsupported rather than offered a download that could not
+ * work: that is how the settings page knows. The arm64 Linux and Windows wheels exist upstream, but
+ * electron-builder does not target those, so neither do we.
+ *
+ * darwin-x64's wheel tag is macOS 13 because onnxruntime 1.23.2's is. An Intel Mac on 12 or older
+ * is not expected to import it; that has not been tried on one.
  */
 const TARGETS = {
     'win32-x64': {
         triple: 'x86_64-pc-windows-msvc',
         wheelTag: 'win_amd64',
+        onnxruntime: '1.29.0',
         exe: 'python.exe',
         sitePackages: ['Lib', 'site-packages'],
     },
     'darwin-arm64': {
         triple: 'aarch64-apple-darwin',
         wheelTag: 'macosx_14_0_arm64',
+        onnxruntime: '1.29.0',
+        exe: join('bin', 'python3'),
+        sitePackages: ['lib', `python${PY_TAG}`, 'site-packages'],
+    },
+    'darwin-x64': {
+        triple: 'x86_64-apple-darwin',
+        wheelTag: 'macosx_13_0_x86_64',
+        onnxruntime: '1.23.2',
         exe: join('bin', 'python3'),
         sitePackages: ['lib', `python${PY_TAG}`, 'site-packages'],
     },
     'linux-x64': {
         triple: 'x86_64-unknown-linux-gnu',
         wheelTag: 'manylinux_2_28_x86_64',
+        onnxruntime: '1.29.0',
         exe: join('bin', 'python3'),
         sitePackages: ['lib', `python${PY_TAG}`, 'site-packages'],
     },
@@ -233,7 +247,7 @@ const buildOne = async (platform) => {
     run(HOST_PYTHON, [
         '-m', 'pip', 'download', '--quiet', '--no-deps', '--only-binary=:all:',
         '--platform', target.wheelTag, '--python-version', PY_TAG,
-        '-d', `wheels-${platform}`, ...WHEELS,
+        '-d', `wheels-${platform}`, `onnxruntime==${target.onnxruntime}`, ...WHEELS,
     ], CACHE);
     const site = target.sitePackages.join('/');
     for (const wheel of await readdir(wheelDir)) {

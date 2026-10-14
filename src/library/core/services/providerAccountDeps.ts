@@ -1,6 +1,7 @@
 import { omni } from '../../../services/onlineMusic/omni';
 import { useNeteaseApiStatusStore } from '../../../stores/useNeteaseApiStatusStore';
 import { useOnlineProviderAccountStore } from '../../../stores/useOnlineProviderAccountStore';
+import { formatBuildProvenance } from '../../../utils/buildProvenance';
 import type {
     LibraryAccountAuthPort,
     LibraryAccountClock,
@@ -62,11 +63,21 @@ export const windowAccountClock: LibraryAccountClock = {
     clearTimeout: handle => window.clearTimeout(handle as number),
 };
 
+// 网页版的站点 origin；桌面版页面是 file:// 等本地协议，返回 null。
+const resolveWebOrigin = (): string | null => {
+    if (typeof window === 'undefined' || window.electron) return null;
+    const { protocol, origin } = window.location;
+    return protocol === 'http:' || protocol === 'https:' ? origin : null;
+};
+
 /** 诊断报告的环境信息（与旧 useOnlineProviderQrLogin 的取法相同）。 */
 export const resolveLoginDiagnosticsEnvironment = (): LibraryLoginDiagnosticsEnvironment => ({
     appVersion: typeof __APP_VERSION__ === 'undefined' ? null : __APP_VERSION__,
     userAgent: typeof navigator === 'undefined' ? '' : navigator.userAgent,
+    build: formatBuildProvenance(),
+    origin: resolveWebOrigin(),
 });
+
 
 /** 宿主提供的端口：per-provider 刷新与登出、确认切换后的播放清理（可以用 ref 指向每次渲染的最新实现）。 */
 export type ProviderAccountHostPorts = {

@@ -115,6 +115,28 @@ describe('finding model weights', () => {
         expect(resolveModelFile([], 'htdemucs')).toBeNull();
     });
 
+    // htdemucs-v2.onnx is the current file; htdemucs.onnx is what apps before it downloaded, and the
+    // runner still runs it, so it still counts - but never over the current file in the same place.
+    it('takes the current htdemucs file over the old name, and still accepts the old one', () => {
+        const both = path.join(root, 'both');
+        mkdirSync(both, { recursive: true });
+        put(both, 'htdemucs');
+        expect(resolveModelFile([both], 'htdemucs')).toBe(path.join(both, 'htdemucs.onnx'));
+
+        put(both, 'htdemucs-v2');
+        expect(resolveModelFile([both], 'htdemucs')).toBe(path.join(both, 'htdemucs-v2.onnx'));
+    });
+
+    it('lets the directory order beat the file name order', () => {
+        const first = path.join(root, 'first-old');
+        const second = path.join(root, 'second-new');
+        mkdirSync(first, { recursive: true });
+        mkdirSync(second, { recursive: true });
+        put(first, 'htdemucs');
+        put(second, 'htdemucs-v2');
+        expect(resolveModelFile([first, second], 'htdemucs')).toBe(path.join(first, 'htdemucs.onnx'));
+    });
+
     it('does not mistake a directory of that name for the weights file', () => {
         const oddDir = path.join(root, 'odd');
         mkdirSync(path.join(oddDir, 'htdemucs.onnx'), { recursive: true });

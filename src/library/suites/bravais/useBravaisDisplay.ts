@@ -68,8 +68,10 @@ export type BravaisDisplayControls = {
     reducedTransitions: boolean;
     /** 这一层此刻的开口宽度（等级、面板、表单、过滤框都算进去了）。 */
     openWidthFor: (layer: BravaisLayer) => number;
+    /** 这一层的缝是不是歌手海报（planOpening 换成把缝带到最左边的相机）。 */
+    posterFor: (layer: BravaisLayer) => boolean;
     setAnchor: (x: number | null) => void;
-    planOpening: (center: WallViewCenter, width: number, preferAnchor: boolean) => { anchorX: number | null; center: WallViewCenter };
+    planOpening: (center: WallViewCenter, width: number, preferAnchor: boolean, poster?: boolean) => { anchorX: number | null; center: WallViewCenter };
     isAnchorOnScreen: () => boolean;
     moveTo: (center: WallViewCenter, forceRecull?: boolean) => void;
     tweenTo: (center: WallViewCenter) => void;
@@ -276,7 +278,7 @@ export const useBravaisDisplay = (layer: BravaisLayer | null, controls: BravaisD
             const memory = readBravaisLayout(layer.sessionKey);
             let center = memory?.center ?? frameRef.current.center;
             frameRef.current.anchorX = memory?.anchorX ?? nearestSeamBoundaryX(center.x, BRAVAIS_METRICS);
-            if (width > 0) center = controlsNow.planOpening(center, width, true).center;
+            if (width > 0) center = controlsNow.planOpening(center, width, true, controlsNow.posterFor(layer)).center;
             controlsNow.setAnchor(frameRef.current.anchorX);
             controlsNow.moveTo(center, true);
             releasePanelOnLayerChange('first', layer.key);
@@ -401,7 +403,7 @@ export const useBravaisDisplay = (layer: BravaisLayer | null, controls: BravaisD
         // 缝保持张开：可见就沿用它的块边界，新开口放不下时相机最小让位（完全收起时不为看不见的缝平移相机）。
         if (width > 0) {
             const preferAnchor = leaving || controlsNow.isAnchorOnScreen();
-            const plan = controlsNow.planOpening(center, width, preferAnchor);
+            const plan = controlsNow.planOpening(center, width, preferAnchor, controlsNow.posterFor(layer));
             frameRef.current.anchorX = plan.anchorX;
             center = plan.center;
         }
@@ -410,8 +412,13 @@ export const useBravaisDisplay = (layer: BravaisLayer | null, controls: BravaisD
         if (kind === 'enter') controlsNow.moveTo(center, true);
         const draft = { ...createBravaisDisplay(layer, startSlotKey, undefined, wallLook), finite: resolveFinite(layer, null) };
         const isHomeTabSwitch = kind === 'replace' && layer.surface === 'home' && previous.layer.surface === 'home';
-        // 整墙波次：换首页页签（出场 → 入场）与回到来源（出场；首页层在遮盖之下落回）。降低动效时换成普通翻牌（磁贴淡入淡出）。
-        const waves = (isHomeTabSwitch || kind === 'exit') && !controlsNow.reducedTransitions;
+        // 整墙波次：换首页页签（出场 → 入场）、歌手页 ↔ 专辑页与回到来源（出场；首页层在遮盖之下落回）。降低动效时换成
+        // 普通翻牌（磁贴淡入淡出）。
+        // 歌手页 ↔ 专辑页：同样整墙波次（歌手墙按对角线抬起淡出、曲目墙再按对角线落进来），封面另外从墙上飞到海报上
+        // （bravaisCoverFlight）。
+        const isArtistAlbumHop = (kind === 'push' && previous.layer.surface === 'artist' && Boolean(layer.seam.album))
+            || (kind === 'back' && layer.surface === 'artist' && Boolean(previous.layer.seam.album));
+        const waves = (isHomeTabSwitch || isArtistAlbumHop || kind === 'exit') && !controlsNow.reducedTransitions;
         const entrance = kind === 'enter' ? planEntrance() : null;
         const flips = entrance ? null : waves ? planWaveFor(previous, draft) : planFlipFor(previous, draft, origin);
         waveUntilRef.current = waves && flips ? performance.now() + flips.durationMs : 0;

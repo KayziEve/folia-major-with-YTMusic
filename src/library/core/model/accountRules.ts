@@ -134,16 +134,66 @@ export const LOGIN_METHOD_STEP_COPY: Readonly<{ title: LibraryHomeMessage; hint:
  * 登录失败后先给的简单办法：重启应用；换个网络再重启应用。诊断报告与反馈收在后面（escalation），
  * 用户试过这些还不行才去点，不一上来就让人发 issue。
  */
-export const LOGIN_FAILURE_TIPS: Readonly<{ title: LibraryHomeMessage; items: readonly LibraryHomeMessage[]; escalation: LibraryHomeMessage }> = {
+export const LOGIN_FAILURE_TIPS: Readonly<{
+    title: LibraryHomeMessage;
+    items: readonly LibraryHomeMessage[];
+    escalation: LibraryHomeMessage;
+    /** 诊断不反馈到本仓库时（resolveLoginReportRoute 不是 github）展开项的文字：不说「发给我们」。 */
+    escalationElsewhere: LibraryHomeMessage;
+}> = {
     title: { key: 'home.qrTipsTitle' },
     items: [{ key: 'home.qrTipRestart' }, { key: 'home.qrTipSwitchNetwork' }],
     escalation: { key: 'home.qrDiagnosticsToggle' },
+    escalationElsewhere: { key: 'home.qrDiagnosticsToggleElsewhere' },
 };
+
+/** 登录设备超限时的简单办法：重启和换网络都没用，换成清理登录设备的步骤（triage playbook 的 qq-device-limit）。 */
+const LOGIN_DEVICE_LIMIT_TIPS: Readonly<{ title: LibraryHomeMessage; items: readonly LibraryHomeMessage[] }> = {
+    title: { key: 'home.qrDeviceLimitTipsTitle' },
+    items: [{ key: 'home.qrDeviceLimitTipRemove' }, { key: 'home.qrDeviceLimitTipQuota' }, { key: 'home.qrDeviceLimitTipRescan' }],
+};
+
+/** 失败后先给的简单办法：账号侧的原因有自己的步骤，其余都是重启与换网络。 */
+export const resolveLoginFailureTips = (
+    failure: QrLoginFailureKind,
+): Readonly<{ title: LibraryHomeMessage; items: readonly LibraryHomeMessage[] }> => (
+    failure === 'device-limit' ? LOGIN_DEVICE_LIMIT_TIPS : LOGIN_FAILURE_TIPS
+);
 
 /** 诊断入口的提示语：扫过码却过期（多半是手机端拒绝）单独一句（buildQrLoginFailureHelpProps）。 */
 export const resolveLoginDiagnosticsPrompt = (failure: QrLoginFailureKind): LibraryHomeMessage => ({
     key: failure === 'expired-after-scan' ? 'home.qrDiagnosticsPromptScanned' : 'home.qrDiagnosticsPrompt',
 });
+
+/**
+ * 跑这个前端的构建与运行环境（反馈去向用）。build 与 utils/buildProvenance 的 BuildKind 相同：official 是本仓库 CI
+ * 构建的，self-hosted 是文档里的自部署方式（Docker、Vercel、Cloudflare），unofficial 是其余一切。web 即网页版。
+ */
+export type LibraryLoginReportEnvironment = { build: 'official' | 'self-hosted' | 'unofficial'; web: boolean };
+
+/**
+ * 诊断报告该交给谁。github：照常去本仓库反馈（官方构建与自部署）；web-deployment：网页版的后端没配置或连不上，
+ * 是部署问题，该找网站的部署者；unofficial-build：不是本仓库 CI 构建、也不是文档里的自部署方式（fork 的 CI、
+ * 本地构建、他人打包），该找提供者。部署问题优先：它比「非官方」更能告诉用户该怎么办。
+ */
+export type LibraryLoginReportRoute = 'github' | 'web-deployment' | 'unofficial-build';
+
+export const resolveLoginReportRoute = (
+    environment: LibraryLoginReportEnvironment,
+    session: Pick<LibraryLoginSessionSnapshot, 'failure' | 'selfCheck'>,
+): LibraryLoginReportRoute => {
+    const remoteUnreachable = session.selfCheck?.status === 'done' && session.selfCheck.verdict.kind === 'remote-unreachable';
+    // 网页版一开始要码就失败（没配 VITE_*_API_BASE、Failed to fetch、跨域）几乎都是部署配置问题。
+    if (environment.web && (session.failure === 'start-error' || remoteUnreachable)) return 'web-deployment';
+    if (environment.build === 'unofficial') return 'unofficial-build';
+    return 'github';
+};
+
+/** 不去 GitHub 时代替反馈按钮的那句说明。 */
+export const LOGIN_REPORT_ELSEWHERE_COPY: Readonly<Record<Exclude<LibraryLoginReportRoute, 'github'>, LibraryHomeMessage>> = {
+    'web-deployment': { key: 'home.qrReportWebDeployment' },
+    'unofficial-build': { key: 'home.qrReportUnofficialBuild' },
+};
 
 // ─── 登录会话的派生 ─────────────────────────────────────────────────────
 
@@ -212,7 +262,7 @@ export const describeLoginError = (error: unknown): Record<string, unknown> => {
     return Object.fromEntries(Object.entries(detail).filter(([, value]) => value !== undefined && value !== null));
 };
 
-const QR_LOGIN_ERROR_REASONS: ReadonlySet<string> = new Set<QrLoginErrorReason>(['canceled-on-device', 'connection-reset']);
+const QR_LOGIN_ERROR_REASONS: ReadonlySet<string> = new Set<QrLoginErrorReason>(['canceled-on-device', 'connection-reset', 'device-limit']);
 
 /** 扫码失败的结构化原因只认已知的几种；provider 或主进程带回的其它值按普通失败处理。 */
 export const knownQrLoginErrorReason = (reason: unknown): QrLoginErrorReason | null => (
@@ -253,7 +303,7 @@ export const shouldResumeLoginAfterBackendRestart = (health: LibraryNeteaseBacke
 );
 
 /**
- * 失败时的状态行：在手机上取消、连接被重置、以及要等后端冷却时，换成说明原因 / 剩余秒数的文案；其余按阶段。
+ * 失败时的状态行：在手机上取消、连接被重置、登录设备超限、以及要等后端冷却时，换成说明原因 / 剩余秒数的文案；其余按阶段。
  * 秒数按失败那一刻算，不随时间倒数；冷却结束时快照清掉秒数，状态行回到普通文案、重试同时可用。
  */
 const resolveLoginFailureStatus = (
@@ -267,6 +317,9 @@ const resolveLoginFailureStatus = (
     }
     if (session.failure === 'connection-reset' && seconds === null) {
         return { key: 'home.qrConnectionReset' };
+    }
+    if (session.failure === 'device-limit' && seconds === null) {
+        return { key: 'home.qrDeviceLimit' };
     }
     if (seconds !== null && (session.phase === 'error' || session.phase === 'expired')) {
         return { key: 'home.qrRetryCooldown', values: { seconds } };

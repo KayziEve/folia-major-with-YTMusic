@@ -17,6 +17,7 @@ import LatticeLyricsProvider from './lyrics/LatticeLyricsProvider';
 import type { LatticeLyricSource } from './lyrics/types';
 import { getPlaybackSongKey } from '../../../utils/appPlaybackGuards';
 import { isPrimaryModifierPressed, isSecondaryModifierPressed } from '../../../utils/platform';
+import { isTextEntryTarget } from '../../../utils/keyboardTargets';
 import { resolveWallHandoffRole, useWallHandoffStore } from '../../../stores/useWallHandoffStore';
 
 // Queue display layer; it renders the play queue and never mutates it.
@@ -36,6 +37,8 @@ type LatticeProps = {
     queue: SongResult[];
     isDaylight: boolean;
     onBack: () => void;
+    /** 工具面板的「主页」：总是回首页（左上角返回仍是历史返回）；缺省时没有那一格。 */
+    onGoHome?: () => void;
     onOpenPlayer: () => void;
     onPlaySong: (song: SongResult, queue: SongResult[]) => void;
     onTogglePlayback: () => void;
@@ -55,6 +58,7 @@ export default function Lattice({
     queue,
     isDaylight,
     onBack,
+    onGoHome,
     onOpenPlayer,
     onPlaySong,
     onTogglePlayback,
@@ -82,7 +86,10 @@ export default function Lattice({
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.repeat
+            // 别处已经用掉的按键（defaultPrevented）与正在打字的输入框（例如工具面板队列浮岛的歌单名输入）里不接 Ctrl+B。
+            if (event.defaultPrevented
+                || isTextEntryTarget(event.target)
+                || event.repeat
                 || event.key.toLowerCase() !== 'b'
                 || !isPrimaryModifierPressed(event)
                 || isSecondaryModifierPressed(event)
@@ -143,7 +150,7 @@ export default function Lattice({
                 onOpenPlayer={wall.onOpenPlayer}
                 onBack={onBack}
             />
-            <LatticeFocusButton isDaylight={isDaylight} />
+            <LatticeFocusButton isDaylight={isDaylight} onGoHome={onGoHome} />
             <WallBackButton label={t('home.latticeBack')} onBack={onBack} />
             {tiles.length === 0 && (
                 <div className="lattice-empty">

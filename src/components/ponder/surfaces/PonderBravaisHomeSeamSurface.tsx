@@ -10,6 +10,7 @@ import {
     FoldHorizontal,
     Library,
     ListFilter,
+    ListMusic,
     LogOut,
     MicVocal,
     MonitorPlay,
@@ -257,12 +258,11 @@ const ToolsPanel: React.FC<{ colors: BravaisSeamColors }> = ({ colors }) => {
             className="rounded-[14px] border"
             style={{ ...relativeRectStyle(T.panel), borderColor: outline, backgroundColor: 'rgb(24,24,27)', boxShadow: '0 16px 40px rgba(0,0,0,0.5)' }}
         >
-            {/* 一排一次性动作：定位正在播放、打乱队列、生成主题、前往 Lattice。 */}
-            <div data-ponder-bravais-tools-quick className="grid grid-cols-4 gap-[4%]" style={relativeRectStyle(T.quick)}>
-                {[Crosshair, Shuffle, Sparkles, PanelsTopLeft].map((Icon, index) => (
-                    <span key={index} className="flex flex-col items-center justify-center gap-[10%] rounded-[10px]" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
+            {/* 一排纯图标的一次性动作：定位正在播放、打乱队列、生成主题、播放队列、前往 Lattice、前往播放页。 */}
+            <div data-ponder-bravais-tools-quick className="grid grid-cols-6 gap-[3%]" style={relativeRectStyle(T.quick)}>
+                {[Crosshair, Shuffle, Sparkles, ListMusic, PanelsTopLeft, Disc3].map((Icon, index) => (
+                    <span key={index} className="flex items-center justify-center rounded-[8px]" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}>
                         <Icon className="h-3.5 w-3.5 opacity-80" />
-                        <TextBar width="56%" color={line} className="h-1" />
                     </span>
                 ))}
             </div>

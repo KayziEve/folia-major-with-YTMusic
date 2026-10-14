@@ -1,4 +1,4 @@
-import { BrickWall, Keyboard, Layers, ListMusic, Music2, Piano, Server, Signpost } from 'lucide-react';
+import { CircleAlert, Disc3, Languages, Music2, Newspaper, WifiOff, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 // src/components/modal/newFeaturesRelease.ts
@@ -19,16 +19,14 @@ type NewFeaturesRelease = {
 
 // Defines the current release's cards; their localized text lives under i18nKey in every locale.
 export const NEW_FEATURES_RELEASE: NewFeaturesRelease = {
-    i18nKey: 'releaseNotes.v0_7_175',
-    majorUpdate: { codename: 'Spica' },
+    i18nKey: 'releaseNotes.v0_7_176',
     features: [
-        { id: 'bravais', icon: BrickWall, daylightIconClassName: 'text-violet-600', darkIconClassName: 'text-violet-400' },
-        { id: 'chooseLibrary', icon: Signpost, daylightIconClassName: 'text-sky-600', darkIconClassName: 'text-sky-400' },
-        { id: 'wallLook', icon: Layers, daylightIconClassName: 'text-amber-600', darkIconClassName: 'text-amber-400' },
-        { id: 'pureMusic', icon: Piano, daylightIconClassName: 'text-rose-600', darkIconClassName: 'text-rose-400' },
-        { id: 'navidromePreset', icon: Server, daylightIconClassName: 'text-emerald-600', darkIconClassName: 'text-emerald-400' },
-        { id: 'qqPlaylists', icon: ListMusic, daylightIconClassName: 'text-cyan-600', darkIconClassName: 'text-cyan-400' },
+        { id: 'artistPoster', icon: Newspaper, daylightIconClassName: 'text-rose-600', darkIconClassName: 'text-rose-400' },
+        { id: 'albumPoster', icon: Disc3, daylightIconClassName: 'text-violet-600', darkIconClassName: 'text-violet-400' },
+        { id: 'playbackFailure', icon: CircleAlert, daylightIconClassName: 'text-amber-600', darkIconClassName: 'text-amber-400' },
+        { id: 'lyricSegmenter', icon: Languages, daylightIconClassName: 'text-sky-600', darkIconClassName: 'text-sky-400' },
+        { id: 'offlineStartup', icon: WifiOff, daylightIconClassName: 'text-emerald-600', darkIconClassName: 'text-emerald-400' },
+        { id: 'stabilityFixes', icon: Wrench, daylightIconClassName: 'text-cyan-600', darkIconClassName: 'text-cyan-400' },
         { id: 'ytmusicDesktop', icon: Music2, daylightIconClassName: 'text-red-600', darkIconClassName: 'text-red-400' },
-        { id: 'commandPaletteKeyboardScroll', icon: Keyboard, daylightIconClassName: 'text-indigo-600', darkIconClassName: 'text-indigo-400' },
     ],
 };

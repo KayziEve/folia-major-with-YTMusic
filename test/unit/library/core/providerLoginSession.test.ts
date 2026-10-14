@@ -707,6 +707,19 @@ describe('providerLoginSession · failures, serial requests, cooldown and self-c
         expect(session.getSnapshot()).toMatchObject({ phase: 'error', failure: 'connection-reset', retryCooldownSeconds: null });
     });
 
+    it('marks an account over its device limit as device-limit and still runs the self-check', async () => {
+        auth.checkQrLogin.mockResolvedValueOnce({
+            state: 'error', message: 'code 800: QR login failed (stage credential-validation, reason upstream-rejected)', reason: 'device-limit',
+        } satisfies QrLoginState);
+        auth.canRunQrLoginSelfCheck.mockReturnValue(true);
+        const session = createSession();
+        await session.start('qq').settled;
+        await manual.advance(QR_POLL_INTERVAL_MS);
+
+        expect(session.getSnapshot()).toMatchObject({ phase: 'error', failure: 'device-limit' });
+        expect(auth.runQrLoginSelfCheck).toHaveBeenCalledWith('qq');
+    });
+
     it('takes a connection reset off a failed QR key request', async () => {
         auth.createQrLogin.mockRejectedValueOnce(Object.assign(new Error('code 502: read ECONNRESET'), { qrLoginReason: 'connection-reset' }));
         const session = createSession();

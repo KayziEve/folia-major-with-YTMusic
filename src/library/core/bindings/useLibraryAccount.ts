@@ -16,10 +16,15 @@ import {
     isLoginDialogVisible,
     LOGIN_FAILURE_TIPS,
     LOGIN_METHOD_STEP_COPY,
+    LOGIN_REPORT_ELSEWHERE_COPY,
     resolveLoginDiagnosticsPrompt,
+    resolveLoginFailureTips,
+    resolveLoginReportRoute,
+    type LibraryLoginReportEnvironment,
     resolveProviderSwitchCopy,
 } from '../model/accountRules';
 import { translateHomeMessage } from '../model/homeSources';
+import { getBuildKind } from '../../../utils/buildProvenance';
 import {
     LOGIN_SELF_CHECK_COPY,
     resolveLoginSelfCheckItemLabel,
@@ -99,6 +104,11 @@ export type LibraryLoginView = {
      * suite 先显示办法，诊断与反馈放在后面。
      */
     failureTips: { title: string; items: string[]; escalation: string } | null;
+    /**
+     * 诊断不该反馈到本仓库时（网页版部署问题、非官方构建）该找谁的说明；非 null 时 suite 不给「去 GitHub 反馈」按钮，
+     * diagnosticsPrompt 也换成这句。复制诊断报告仍然保留，方便交给部署者或提供者。
+     */
+    reportElsewhereNote: string | null;
     /** 后端故障界面的文案（只有 backend.failed 时非空）。 */
     backendFailure: { title: string; restartLabel: string; restartingLabel: string } | null;
     /** 失败后的自检；没有时为 null。 */
@@ -156,9 +166,13 @@ export const translateLoginSession = (
     t: TFunction,
     session: LibraryLoginSessionSnapshot,
     providerLabel: string = session.providerId,
+    reportEnvironment: LibraryLoginReportEnvironment = { build: 'official', web: false },
 ): LibraryLoginView => {
     const { copy, methods, selectedMethodId } = session;
     const selected = methods.find(method => method.id === selectedMethodId);
+    const reportRoute = resolveLoginReportRoute(reportEnvironment, session);
+    const reportElsewhereNote = reportRoute === 'github' ? null : translateHomeMessage(t, LOGIN_REPORT_ELSEWHERE_COPY[reportRoute]);
+    const failureTips = session.failure ? resolveLoginFailureTips(session.failure) : null;
     return {
         session,
         visible: isLoginDialogVisible(session),
@@ -177,15 +191,16 @@ export const translateLoginSession = (
             }
             : null,
         diagnosticsPrompt: session.failure && canShowLoginDiagnostics(session)
-            ? translateHomeMessage(t, resolveLoginDiagnosticsPrompt(session.failure))
+            ? reportElsewhereNote ?? translateHomeMessage(t, resolveLoginDiagnosticsPrompt(session.failure))
             : null,
-        failureTips: session.failure && canShowLoginDiagnostics(session)
+        failureTips: failureTips && canShowLoginDiagnostics(session)
             ? {
-                title: translateHomeMessage(t, LOGIN_FAILURE_TIPS.title),
-                items: LOGIN_FAILURE_TIPS.items.map(item => translateHomeMessage(t, item)),
-                escalation: translateHomeMessage(t, LOGIN_FAILURE_TIPS.escalation),
+                title: translateHomeMessage(t, failureTips.title),
+                items: failureTips.items.map(item => translateHomeMessage(t, item)),
+                escalation: translateHomeMessage(t, reportElsewhereNote ? LOGIN_FAILURE_TIPS.escalationElsewhere : LOGIN_FAILURE_TIPS.escalation),
             }
             : null,
+        reportElsewhereNote,
         backendFailure: session.backend.failed
             ? {
                 title: t('home.loginBackendDown'),
@@ -224,13 +239,19 @@ const selectLoginProviderLabel = (snapshot: LibraryAccountSnapshot): string | nu
     snapshot.login ? providerLabelOf(snapshot.providers, snapshot.login.providerId) : null
 );
 
+// 构建与运行环境在页面生命周期内不变：构建类别由构建期注入，网页版即没有 Electron 桥。
+const LOGIN_REPORT_ENVIRONMENT: LibraryLoginReportEnvironment = {
+    build: getBuildKind(),
+    web: typeof window !== 'undefined' && !window.electron,
+};
+
 /** 只订阅登录会话（和它的平台名）：没有登录时为 null。 */
 export const useLibraryAccountLogin = (controller: LibraryAccountController): LibraryLoginView | null => {
     const { t } = useTranslation();
     const session = useLibraryAccountSelector(controller, selectLogin);
     const providerLabel = useLibraryAccountSelector(controller, selectLoginProviderLabel);
     return useMemo(
-        () => (session ? translateLoginSession(t, session, providerLabel ?? session.providerId) : null),
+        () => (session ? translateLoginSession(t, session, providerLabel ?? session.providerId, LOGIN_REPORT_ENVIRONMENT) : null),
         [providerLabel, session, t],
     );
 };

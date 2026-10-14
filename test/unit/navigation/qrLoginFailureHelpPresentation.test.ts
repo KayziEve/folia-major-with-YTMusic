@@ -76,6 +76,24 @@ describe('QR login failure help presentation', () => {
         }
     });
 
+    it('replaces the GitHub report with a note on unofficial builds and broken web deployments', () => {
+        expect(translateLoginSession(t, session('qq', 'check-error')).reportElsewhereNote).toBeNull();
+        expect(translateLoginSession(t, session('qq', 'check-error'), 'qq', { build: 'self-hosted', web: true }).reportElsewhereNote).toBeNull();
+        const unofficial = translateLoginSession(t, session('qq', 'check-error'), 'qq', { build: 'unofficial', web: false });
+        expect(unofficial.reportElsewhereNote).toBe('home.qrReportUnofficialBuild');
+        // 不再说「发给我们」：提示语换成该找谁，展开项也换成中性的文字。
+        expect(unofficial.diagnosticsPrompt).toBe('home.qrReportUnofficialBuild');
+        expect(unofficial.failureTips?.escalation).toBe('home.qrDiagnosticsToggleElsewhere');
+        expect(translateLoginSession(t, session('netease', 'start-error'), 'netease', { build: 'self-hosted', web: true }).reportElsewhereNote)
+            .toBe('home.qrReportWebDeployment');
+        const failureHelp = buildQrLoginFailureHelpProps({
+            t, providerId: 'qq', failure: 'check-error', tips: { title: '', items: [], escalation: '' },
+            reportElsewhereNote: 'home.qrReportUnofficialBuild', buildReport: async () => 'report',
+        });
+        expect(failureHelp.reportElsewhereNote).toBe('home.qrReportUnofficialBuild');
+        expect(failureHelp.prompt).toBe('home.qrReportUnofficialBuild');
+    });
+
     it('stays a narrow single column while nothing has failed', () => {
         const { view, failureHelp, html } = render('netease', null);
         expect(view.failureTips).toBeNull();

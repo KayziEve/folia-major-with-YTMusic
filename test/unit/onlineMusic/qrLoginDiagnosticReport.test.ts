@@ -202,6 +202,27 @@ describe('QR login diagnostic report', () => {
         ]);
     });
 
+    it('says which build produced the report and, on the web, which site it ran on', () => {
+        const report = formatQrLoginDiagnosticReport({
+            generatedAt: AT,
+            appVersion: '1.2.3',
+            userAgent: 'test-agent',
+            build: 'unofficial (someone/folia-fork@abc1234)',
+            origin: 'https://folia.example.com',
+            providerId: 'netease',
+            methodId: null,
+            failure: 'start-error',
+            timeline: [],
+            providerLines: [],
+        });
+
+        expect(report.split('\n').slice(4, 7)).toEqual([
+            'app: 1.2.3',
+            'build: unofficial (someone/folia-fork@abc1234)',
+            'origin: https://folia.example.com',
+        ]);
+    });
+
     it('writes the self-check verdict first, then every layer it checked', () => {
         const result: LoginSelfCheckResult = {
             providerId: 'netease',

@@ -96,6 +96,8 @@ export const formatQrLoginDiagnosticReport = ({
     generatedAt,
     appVersion,
     userAgent,
+    build = null,
+    origin = null,
     providerId,
     methodId,
     failure,
@@ -106,6 +108,10 @@ export const formatQrLoginDiagnosticReport = ({
     generatedAt: number;
     appVersion: string | null;
     userAgent: string;
+    /** 官方 / 非官方构建与来源仓库（utils/buildProvenance）；没有时不出这一行。 */
+    build?: string | null;
+    /** 网页版的站点 origin；桌面版没有。 */
+    origin?: string | null;
     providerId: OnlineProviderId;
     methodId: string | null;
     failure: QrLoginFailureKind | null;
@@ -118,6 +124,8 @@ export const formatQrLoginDiagnosticReport = ({
     '```text',
     `generated: ${new Date(generatedAt).toISOString()}`,
     `app: ${appVersion ?? 'unknown'}`,
+    ...(build ? [`build: ${build}`] : []),
+    ...(origin ? [`origin: ${origin}`] : []),
     `user agent: ${userAgent || 'unknown'}`,
     `provider: ${providerId}${methodId ? ` (method ${methodId})` : ''}`,
     `failure: ${failure ?? 'none'}`,

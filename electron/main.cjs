@@ -55,6 +55,7 @@ const {
   runAiConnectionTest,
   runAiJsonCompletion,
 } = require('./aiTextClient.cjs');
+const { createAiCredentialStore, isAiCredentialKey, isReservedAiCredentialKey } = require('./aiCredentialStore.cjs');
 const {
   SEGMENTATION_GEMINI_GENERATION_CONFIG,
   SEGMENTATION_JSON_SCHEMA,
@@ -205,6 +206,9 @@ const bodianApiBridge = createBodianApiBridge({ store, safeStorage,
 });
 const ytmusicApiBridge = createYtmusicApiBridge();
 const qqAuthSessionRepository = createQqAuthSessionRepository({ store, safeStorage });
+// AI API keys are sealed with safeStorage instead of sitting in config.json as plaintext, and never
+// leave the main process: the renderer only sees AI_API_KEYS_CONFIGURED (#586).
+const aiCredentials = createAiCredentialStore({ store, safeStorage });
 
 // --- Desktop wallpaper mode (Wayland layer-shell via windowtolayer / X11 desktop window) ---
 // Settings keys follow the existing electron-store key/value chain; values are normalized here in
@@ -1953,7 +1957,7 @@ function readStoredBoolean(settingKey, fallback = false) {
 
 function getPublicSettings() {
   return {
-    ...store.store,
+    ...aiCredentials.toPublicSettings(store.store),
     [MINIMIZE_TO_TRAY_SETTING_KEY]: readStoredBoolean(MINIMIZE_TO_TRAY_SETTING_KEY, false),
     [CLOSE_TO_TRAY_SETTING_KEY]: readStoredBoolean(CLOSE_TO_TRAY_SETTING_KEY, false),
     [HIDE_TASKBAR_ICON_SETTING_KEY]: readStoredBoolean(HIDE_TASKBAR_ICON_SETTING_KEY, false),
@@ -4466,6 +4470,13 @@ function startMainWindowClickThroughUnlockHoverMonitor() {
   if (mainWindowClickThroughUnlockHoverTimer) {
     return;
   }
+  // Wayland exposes neither window position nor a global cursor: getBounds() sits at (0,0) and
+  // getCursorScreenPoint() stays (0,0), so this poll would read "outside" every tick and fight the
+  // renderer's mousemove hit test (the unlock button blinks every interval and can't be clicked).
+  // The renderer keeps receiving mouse-move while ignoring there, so it drives the hotspot alone.
+  if (process.platform === 'linux' && onWayland) {
+    return;
+  }
 
   syncMainWindowClickThroughUnlockHoverFromCursor();
   mainWindowClickThroughUnlockHoverTimer = setInterval(
@@ -5156,6 +5167,13 @@ app.whenReady().then(async () => {
     }
   }
 
+  // Seal AI API keys that older versions left in config.json as plaintext.
+  try {
+    aiCredentials.migrate();
+  } catch (error) {
+    console.warn('[AiCredentials] Migrating plaintext API keys failed', error);
+  }
+
   setupFileSystemAccessPermissionHandlers();
   setupCorsBypassHandlers();
   localCoverAssetStore.registerProtocolHandler(protocol, electronNet);
@@ -5466,7 +5484,19 @@ ipcMain.handle('set-app-locale', (event, localeKey) => {
 });
 
 ipcMain.handle('save-settings', (event, key, value) => {
-  if (key === 'DISCORD_RICH_PRESENCE_APPLICATION_ID') {
+  // electron-store's set() also accepts an object of key/value pairs, which would bypass the
+  // per-key guards below.
+  if (typeof key !== 'string') {
+    return getPublicSettings();
+  }
+  if (key === 'DISCORD_RICH_PRESENCE_APPLICATION_ID' || isReservedAiCredentialKey(key)) {
+    return getPublicSettings();
+  }
+  if (isAiCredentialKey(key)) {
+    // Only a string is a key; '' is the explicit clear. Anything else must not wipe a saved key.
+    if (typeof value === 'string') {
+      aiCredentials.set(key, value);
+    }
     return getPublicSettings();
   }
 
@@ -6584,7 +6614,7 @@ ipcMain.handle('generate-theme', async (event, lyricsText, options = {}) => {
       const sourcePrompt = buildThemeSourcePrompt(snippet, isPureMusic, songTitle);
       const apiUrl = normalizeOpenAIChatCompletionsUrl(store.get('OPENAI_API_URL'));
       const content = await runAiJsonCompletion({
-        store,
+        store: aiCredentials.settingsView,
         systemPrompt,
         sourcePrompt,
         schema: THEME_JSON_SCHEMA,
@@ -6605,7 +6635,7 @@ ipcMain.handle('generate-theme', async (event, lyricsText, options = {}) => {
       dualTheme.dark.provider = 'OpenAI Compatible (Local)';
 
     } else {
-      const apiKey = store.get('GEMINI_API_KEY');
+      const apiKey = aiCredentials.get('GEMINI_API_KEY');
       if (!apiKey) {
         throw new Error("GEMINI_API_KEY is not configured in settings");
       }
@@ -6645,7 +6675,17 @@ ipcMain.handle('ai-test-connection', async (event, payload) => {
       ? payload.useSystemProxy
       : (store.get('USE_SYSTEM_PROXY_FOR_AI') || false);
     const customFetch = (url, options) => fetchWithOptionalSystemProxy(url, options, useSystemProxy);
-    return await runAiConnectionTest(payload, { customFetch });
+    // An empty key field means "use the saved key": the renderer never receives it to send back.
+    let testPayload = payload;
+    if (payload && typeof payload === 'object'
+      && (payload.apiKey === undefined || payload.apiKey === null || typeof payload.apiKey === 'string')) {
+      const resolved = aiCredentials.resolveTestApiKey(payload.provider, payload.apiKey, payload.apiUrl);
+      if (resolved.error) {
+        return { ok: false, durationMs: 0, errorKind: 'config', error: resolved.error };
+      }
+      testPayload = { ...payload, apiKey: resolved.apiKey };
+    }
+    return await runAiConnectionTest(testPayload, { customFetch });
   } catch (e) {
     console.error('[ai-test] failed:', e instanceof Error ? e.message : String(e));
     return { ok: false, durationMs: 0, errorKind: 'network', error: 'Connection test failed unexpectedly.' };
@@ -6671,7 +6711,7 @@ ipcMain.handle('segment-lyrics', async (event, lines) => {
       + ` via ${store.get('AI_PROVIDER') || 'gemini'}${useSystemProxy ? ' (system proxy)' : ''}`);
 
     rawResponse = await runAiJsonCompletion({
-      store,
+      store: aiCredentials.settingsView,
       systemPrompt: buildSegmentationSystemPrompt(),
       sourcePrompt: buildSegmentationSourcePrompt(sourceLines),
       schema: SEGMENTATION_JSON_SCHEMA,

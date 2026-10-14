@@ -159,7 +159,7 @@ describe('the failure help in the login form', () => {
         expect(help).toEqual({
             tips: { title: 'home.qrTipsTitle', items: ['home.qrTipRestart', 'home.qrTipSwitchNetwork'] },
             selfCheck: null,
-            escalation: { label: 'home.qrDiagnosticsToggle', prompt: 'home.qrDiagnosticsPrompt' },
+            escalation: { label: 'home.qrDiagnosticsToggle', prompt: 'home.qrDiagnosticsPrompt', elsewhere: null },
         });
         // 没有失败形态、或 suite 没声明诊断：没有。
         expect(projectBravaisFailureHelp(view({ phase: 'error' }), FEATURES)).toBeNull();

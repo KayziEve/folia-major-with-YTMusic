@@ -486,6 +486,8 @@ export const createProviderLoginSession = (deps: ProviderLoginSessionDeps): Prov
             generatedAt: clock.now(),
             appVersion: diagnostics.appVersion,
             userAgent: diagnostics.userAgent,
+            build: diagnostics.build ?? null,
+            origin: diagnostics.origin ?? null,
             providerId,
             methodId,
             failure: snapshot.failure,

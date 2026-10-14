@@ -8,6 +8,7 @@ import QrLoginSelfCheckSummary from './QrLoginSelfCheckSummary';
 // 1. 几条简单办法（重启 Folia；换个网络再重启 Folia）；
 // 2. 自动检查的结论与逐项结果（卡在哪一层）；
 // 3. 收起的「还是不行？」：展开后才有复制诊断报告、去 GitHub 反馈与报告内容的告知——不一上来就让人发 issue。
+//    网页版部署问题或非官方构建不给去 GitHub 的按钮，提示语换成该找谁（reportElsewhereNote）。
 // 报告要等用户点了才生成（会等还在跑的自检）；重试后失败形态清空，这块随之卸载，下一次失败时重新收起。
 
 export type QrLoginFailureHelpProps = {
@@ -23,6 +24,8 @@ export type QrLoginFailureHelpProps = {
     copiedLabel: string;
     copyFailedLabel: string;
     reportLabel: string;
+    /** 非 null 时问题不该反馈到本仓库（网页版部署问题、非官方构建）：不给反馈按钮（prompt 已换成这句）。 */
+    reportElsewhereNote?: string | null;
     buildReport: () => Promise<string>;
     buildIssueUrl: (report: string) => string;
 };
@@ -50,6 +53,7 @@ const QrLoginFailureHelp = ({
     copiedLabel,
     copyFailedLabel,
     reportLabel,
+    reportElsewhereNote = null,
     buildReport,
     buildIssueUrl,
 }: QrLoginFailureHelpProps) => {
@@ -118,15 +122,17 @@ const QrLoginFailureHelp = ({
                                 <CopyIcon size={12} className={copyState === 'working' ? 'animate-spin' : undefined} />
                                 {copyText}
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => void handleReport()}
-                                disabled={copyState === 'working'}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-[11px] font-semibold opacity-80 transition-colors disabled:opacity-50 disabled:cursor-default"
-                            >
-                                <ExternalLink size={12} />
-                                {reportLabel}
-                            </button>
+                            {!reportElsewhereNote && (
+                                <button
+                                    type="button"
+                                    onClick={() => void handleReport()}
+                                    disabled={copyState === 'working'}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-[11px] font-semibold opacity-80 transition-colors disabled:opacity-50 disabled:cursor-default"
+                                >
+                                    <ExternalLink size={12} />
+                                    {reportLabel}
+                                </button>
+                            )}
                         </div>
                     </div>
                 )}

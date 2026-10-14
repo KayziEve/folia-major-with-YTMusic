@@ -8,7 +8,7 @@
     "email": "chthollyphile@users.noreply.github.com"
   },
   "private": true,
-  "version": "0.7.175",
+  "version": "0.7.176",
   "license": "AGPL-3.0",
   "type": "module",
   "main": "electron/main.cjs",
@@ -246,6 +246,7 @@
     "autoprefixer": "^10.6.1",
     "baseline-browser-mapping": "^2.11.26",
     "blueimp-md5": "^2.19.0",
+    "budoux": "^0.9.3",
     "buffer": "^6.0.3",
     "concurrently": "^10.0.5",
     "cross-env": "^10.1.0",

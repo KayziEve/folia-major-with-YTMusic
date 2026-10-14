@@ -17,20 +17,38 @@ const fs = require('fs');
 const MODEL_NAMES = ['beat_this', 'htdemucs'];
 
 /**
+ * The file names a model may be installed under, current first. The current one is the manifest's
+ * `file`, what a download writes.
+ *
+ * htdemucs changed files without changing models: htdemucs-v2.onnx has the STFT and iSTFT taken out of
+ * the graph (build/htdemucs_cut_fft.py), and an app from before that cannot run it. A new file name is
+ * what keeps those apps working - overwriting htdemucs.onnx on the mirrors would have failed every one
+ * of their downloads on the hash. The old name still counts as installed here, because the runner
+ * still runs it: a listener who already has it keeps separation, just without the speed-up.
+ */
+const MODEL_FILES = {
+    beat_this: ['beat_this.onnx'],
+    htdemucs: ['htdemucs-v2.onnx', 'htdemucs.onnx'],
+};
+
+/**
  * The first of `dirs` that actually holds this model, or null.
  *
  * Order is the caller's: the user's own directory first, then what the app downloaded, then what
- * the installer shipped. A file the user put somewhere deliberately outranks one we fetched.
+ * the installer shipped. A file the user put somewhere deliberately outranks one we fetched, so the
+ * directory order wins over the file names' - within one directory, the current file wins.
  */
 const resolveModelFile = (dirs, name) => {
     for (const dir of dirs) {
         if (!dir) continue;
-        const file = path.join(dir, `${name}.onnx`);
-        // isFile rather than existsSync: a DIRECTORY of that name passes existsSync, and the result is the
-        // settings page reporting the model installed while onnxruntime gets handed a folder. Unlikely, but
-        // it is the "answers confidently and wrongly" shape, which this subsystem has paid for enough times
-        // to spend one stat on.
-        if (fs.statSync(file, { throwIfNoEntry: false })?.isFile()) return file;
+        for (const fileName of MODEL_FILES[name] ?? [`${name}.onnx`]) {
+            const file = path.join(dir, fileName);
+            // isFile rather than existsSync: a DIRECTORY of that name passes existsSync, and the result is
+            // the settings page reporting the model installed while onnxruntime gets handed a folder.
+            // Unlikely, but it is the "answers confidently and wrongly" shape, which this subsystem has
+            // paid for enough times to spend one stat on.
+            if (fs.statSync(file, { throwIfNoEntry: false })?.isFile()) return file;
+        }
     }
     return null;
 };
@@ -103,7 +121,7 @@ const downloadables = (manifest, platform = PLATFORM) => {
     });
 
     // A download is offered only when the thing it switches on can actually run here. The weights
-    // are one file for every platform, so htdemucs.onnx resolves fine on an Intel Mac - and is 109MB
+    // are one file for every platform, so htdemucs.onnx resolves fine where the runtime has no build - and is 108MB
     // that will never separate anything, because the runtime it needs has no build for that machine.
     // Offering it is the same lie as a settings page reporting an engine with no weights behind it,
     // just told in the other direction. `enables` is what ties them: both entries buy `stems`, and
@@ -113,6 +131,6 @@ const downloadables = (manifest, platform = PLATFORM) => {
 };
 
 module.exports = {
-    MODEL_NAMES, RUNTIME_NAME, RUNTIME_BIN, PLATFORM,
+    MODEL_NAMES, MODEL_FILES, RUNTIME_NAME, RUNTIME_BIN, PLATFORM,
     resolveModelFile, modelsPresent, resolveRuntime, resolveRuntimeDir, runtimePresent, downloadables,
 };
